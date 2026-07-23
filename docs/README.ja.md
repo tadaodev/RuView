@@ -1,7 +1,9 @@
 # RuView 日本語ドキュメントインデックス (Documentation Index)
 
 <p align="center">
-  <strong><a href="README.md">English Index</a> | 日本語インデックス</strong>
+  <a href="https://cognitum.one/marketplace/musica">
+    <img src="../assets/musica-promo.png" alt="Cognitum Musica" width="100%">
+  </a>
 </p>
 
 π RuView（WiFi-DensePose）プロジェクトの全ドキュメント、主要ガイド、ドメインモデル、および 182件のアーキテクチャ決定記録（ADR）への日本語総合インデックスです。
