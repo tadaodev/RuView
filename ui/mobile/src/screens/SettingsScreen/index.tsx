@@ -9,6 +9,7 @@ import { apiService } from '@/services/api.service';
 import { wsService } from '@/services/ws.service';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Alert, Pressable, Platform } from 'react-native';
+import { t } from '@/utils/i18n';
 import { ThemePicker } from './ThemePicker';
 import { RssiToggle } from './RssiToggle';
 import { ServerUrlInput } from './ServerUrlInput';
@@ -122,18 +123,18 @@ export const SettingsScreen = () => {
           paddingBottom: spacing.xl,
         }}
       >
-        <GlowCard title="SERVER">
+        <GlowCard title={t('mobile.server', 'SERVER')}>
           <ServerUrlInput value={draftUrl} onChange={setDraftUrl} onSave={handleSaveUrl} />
         </GlowCard>
 
-        <GlowCard title="SENSING">
+        <GlowCard title={t('mobile.sensing', 'SENSING')}>
           <RssiToggle enabled={rssiScanEnabled} onChange={setRssiScanEnabled} />
           <ThemedText preset="bodyMd" style={{ marginTop: spacing.md }}>
-            Scan interval
+            {t('mobile.scanInterval', 'Scan interval')}
           </ThemedText>
           <ScanIntervalPicker value={scanInterval} onChange={setScanInterval} />
           <ThemedText preset="bodySm" style={{ color: colors.textSecondary, marginTop: spacing.sm }}>
-            Active interval: {intervalSummary}
+            {t('mobile.activeInterval', 'Active interval')}: {intervalSummary}
           </ThemedText>
           {Platform.OS === 'ios' && (
             <ThemedText preset="bodySm" style={{ color: colors.textSecondary, marginTop: spacing.sm }}>
@@ -142,11 +143,11 @@ export const SettingsScreen = () => {
           )}
         </GlowCard>
 
-        <GlowCard title="APPEARANCE">
+        <GlowCard title={t('mobile.appearance', 'APPEARANCE')}>
           <ThemePicker value={theme} onChange={setTheme} />
         </GlowCard>
 
-        <GlowCard title="ABOUT">
+        <GlowCard title={t('mobile.about', 'ABOUT')}>
           <ThemedText preset="bodyMd" style={{ marginBottom: spacing.xs }}>
             WiFi-DensePose Mobile v1.0.0
           </ThemedText>
@@ -155,9 +156,9 @@ export const SettingsScreen = () => {
             style={{ color: colors.accent, marginBottom: spacing.sm }}
             onPress={handleOpenGitHub}
           >
-            View on GitHub
+            {t('mobile.viewOnGithub', 'View on GitHub')}
           </ThemedText>
-          <ThemedText preset="bodySm">WebSocket: {WS_PATH}</ThemedText>
+          <ThemedText preset="bodySm">{t('mobile.websocket', 'WebSocket')}: {WS_PATH}</ThemedText>
           <ThemedText preset="bodySm" style={{ color: colors.textSecondary }}>
             Triage priority mapping: Immediate/Delayed/Minor/Deceased/Unknown
           </ThemedText>

@@ -1,12 +1,13 @@
-/* Settings drawer — theme / density / motion / auto-update. */
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { effect } from '@preact/signals-core';
 import { theme, density, motionReduced, autoUpdate, transport, wsUrl } from '../store/appStore';
+import { t, i18n, setLocale } from '../i18n';
 
 @customElement('nv-settings-drawer')
 export class NvSettingsDrawer extends LitElement {
   @state() private open = false;
+  private _unsubI18n?: () => void;
 
   static styles = css`
     /* The host covers the viewport without transforming itself. Only the
@@ -114,8 +115,14 @@ export class NvSettingsDrawer extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this._unsubI18n = i18n.onLocaleChange(() => this.requestUpdate());
     effect(() => { theme.value; density.value; motionReduced.value; autoUpdate.value; transport.value; wsUrl.value; this.requestUpdate(); });
     window.addEventListener('open-settings', () => { this.open = true; this.setAttribute('open', ''); });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._unsubI18n) this._unsubI18n();
   }
 
   private close(): void { this.open = false; this.removeAttribute('open'); }
@@ -132,17 +139,29 @@ export class NvSettingsDrawer extends LitElement {
   override render() {
     return html`
       <div class="scrim" @click=${() => this.close()}></div>
-      <div class="panel" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="panel" role="dialog" aria-modal="true" aria-label="${t('settings.title', 'Settings')}">
       <div class="h">
-        <div class="ttl">Settings</div>
+        <div class="ttl">${t('settings.title', 'Settings')}</div>
         <button class="close" @click=${() => this.close()}>×</button>
       </div>
       <div class="body">
         <div class="group">
-          <h4>Appearance</h4>
+          <h4>${t('settings.appearance', 'Appearance')}</h4>
           <div class="row">
             <div>
-              <div class="lbl">Theme</div>
+              <div class="lbl">${t('ui.misc.language', 'Language')}</div>
+              <div class="desc">Select UI language (日本語 / English)</div>
+            </div>
+            <div class="seg">
+              <button class=${i18n.getLocale() === 'ja' ? 'on' : ''}
+                @click=${() => setLocale('ja')}>JA (日本語)</button>
+              <button class=${i18n.getLocale() === 'en' ? 'on' : ''}
+                @click=${() => setLocale('en')}>EN (English)</button>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <div class="lbl">${t('settings.theme', 'Theme')}</div>
               <div class="desc">Dark is the default; light has higher contrast for daylight work.</div>
             </div>
             <div class="seg">
@@ -154,7 +173,7 @@ export class NvSettingsDrawer extends LitElement {
           </div>
           <div class="row">
             <div>
-              <div class="lbl">Density</div>
+              <div class="lbl">${t('settings.density', 'Density')}</div>
               <div class="desc">Affects panel padding and font scale (15 / 14 / 13 px). Choose what your eyes prefer.</div>
             </div>
             <div class="seg">
@@ -168,7 +187,7 @@ export class NvSettingsDrawer extends LitElement {
           </div>
           <div class="row">
             <div>
-              <div class="lbl">Reduce motion</div>
+              <div class="lbl">${t('settings.reduceMotion', 'Reduce motion')}</div>
               <div class="desc">Stops the rotating diamond, animated field lines, and chart easing. Auto-on if your system has the prefers-reduced-motion preference set.</div>
             </div>
             <span class="toggle ${motionReduced.value ? 'on' : ''}"
@@ -178,10 +197,10 @@ export class NvSettingsDrawer extends LitElement {
         </div>
 
         <div class="group">
-          <h4>Pipeline</h4>
+          <h4>${t('settings.pipeline', 'Pipeline')}</h4>
           <div class="row">
             <div>
-              <div class="lbl">Auto-rerun on edit</div>
+              <div class="lbl">${t('settings.autoRerun', 'Auto-rerun on edit')}</div>
               <div class="desc">When you change a Tunables slider or load a new scene, push the change to the worker without a manual restart.</div>
             </div>
             <span class="toggle ${autoUpdate.value ? 'on' : ''}"
@@ -191,10 +210,10 @@ export class NvSettingsDrawer extends LitElement {
         </div>
 
         <div class="group">
-          <h4>Transport</h4>
+          <h4>${t('settings.transport', 'Transport')}</h4>
           <div class="row">
             <div>
-              <div class="lbl">Mode</div>
+              <div class="lbl">${t('settings.mode', 'Mode')}</div>
               <div class="desc">WASM runs nvsim in your browser (default, no server). WS connects to a host-supplied nvsim-server (REST + binary WebSocket); see ADR-092 §6.2.</div>
             </div>
             <div class="seg">
@@ -241,7 +260,7 @@ export class NvSettingsDrawer extends LitElement {
           </div>
           <div class="row">
             <div>
-              <div class="lbl">Reset all preferences</div>
+              <div class="lbl">${t('settings.resetPrefs', 'Reset all preferences')}</div>
               <div class="desc">Wipe theme, density, motion, scene drag positions, REPL history, and the onboarding-seen flag.</div>
             </div>
             <button class="seg"

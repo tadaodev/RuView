@@ -1,5 +1,9 @@
 # RuView Streaming Engine v0.3.0 — Auditable Environmental Intelligence
 
+<p align="center">
+  <strong>English | <a href="RELEASE-streaming-engine-v0.3.0.ja.md">日本語</a></strong>
+</p>
+
 ## What this is
 
 Most WiFi-sensing stacks emit a number and hope you trust it. **RuView's streaming

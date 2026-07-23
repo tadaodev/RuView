@@ -7,11 +7,13 @@ import {
   witnessHex, expectedWitness, witnessVerified, getClient,
   pushLog, lastB, bMag,
 } from '../store/appStore';
+import { t, i18n } from '../i18n';
 
 type Tab = 'signal' | 'frame' | 'witness';
 
 @customElement('nv-inspector')
 export class NvInspector extends LitElement {
+  private _unsubI18n?: () => void;
   @state() private tab: Tab = 'signal';
   /** When set by the parent, force the tab and pulse-highlight it. */
   @property({ attribute: false }) pinTab: Tab | null = null;
@@ -340,10 +342,10 @@ export class NvInspector extends LitElement {
     const status = witnessVerified.value;
     const cls = status === 'ok' ? 'ok' : status === 'fail' ? 'fail' : '';
     const label =
-      status === 'pending' ? 'Verifying…' :
-      status === 'ok' ? '✓ Witness verified · determinism gate' :
-      status === 'fail' ? '✗ Witness mismatch · audit required' :
-      'Verify witness';
+      status === 'pending' ? t('misc.loading', 'Verifying…') :
+      status === 'ok' ? t('inspector.verifyOk', '✓ Witness verified · determinism gate') :
+      status === 'fail' ? t('inspector.verifyFail', '✗ Witness mismatch · audit required') :
+      t('inspector.verifyBtn', 'Verify witness');
     const match = expectedWitness.value && witnessHex.value && expectedWitness.value === witnessHex.value;
     return html`
       ${this.expanded ? html`
@@ -415,13 +417,13 @@ export class NvInspector extends LitElement {
       <div class="tabs" role="tablist">
         <button class="tab ${this.tab === 'signal' ? 'active' : ''}" data-pane="signal"
           role="tab" aria-selected=${this.tab === 'signal'}
-          @click=${() => this.tab = 'signal'}>Signal</button>
+          @click=${() => this.tab = 'signal'}>${t('inspector.signalTitle', 'Signal')}</button>
         <button class="tab ${this.tab === 'frame' ? 'active' : ''}" data-pane="frame"
           role="tab" aria-selected=${this.tab === 'frame'}
-          @click=${() => this.tab = 'frame'}>Frame</button>
+          @click=${() => this.tab = 'frame'}>${t('inspector.frameTitle', 'Frame')}</button>
         <button class="tab ${this.tab === 'witness' ? 'active' : ''}" data-pane="witness"
           role="tab" aria-selected=${this.tab === 'witness'}
-          @click=${() => this.tab = 'witness'}>Witness</button>
+          @click=${() => this.tab = 'witness'}>${t('inspector.witnessTitle', 'Witness')}</button>
       </div>
       <div class="body" role="tabpanel">
         ${this.renderHeader()}

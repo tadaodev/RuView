@@ -8,9 +8,12 @@ import {
 } from '../store/appStore';
 import { openModal } from './nv-modal';
 import { toast } from './nv-toast';
+import { t, i18n, setLocale } from '../i18n';
 
 @customElement('nv-topbar')
 export class NvTopbar extends LitElement {
+  private _unsubI18n?: () => void;
+
   static styles = css`
     :host {
       display: flex; align-items: center;
@@ -55,7 +58,13 @@ export class NvTopbar extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this._unsubI18n = i18n.onLocaleChange(() => this.requestUpdate());
     effect(() => { fps.value; transportLabel.value; seed.value; theme.value; sceneName.value; running.value; this.requestUpdate(); });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._unsubI18n) this._unsubI18n();
   }
 
   private async toggleRun(): Promise<void> {
@@ -73,13 +82,13 @@ export class NvTopbar extends LitElement {
   private async openSeedModal(): Promise<void> {
     const cur = `0x${seed.value.toString(16).toUpperCase().padStart(8, '0')}`;
     openModal({
-      title: 'Set seed',
-      body: `<p>Set the 32-bit hex seed for the shot-noise PRNG. Same <code>(scene, config, seed)</code> → byte-identical witness.</p>
-        <label>Hex seed</label>
+      title: t('topbar.seedModalTitle', 'Set seed'),
+      body: `<p>${t('topbar.seedModalBody', 'Set the 32-bit hex seed for the shot-noise PRNG. Same <code>(scene, config, seed)</code> → byte-identical witness.')}</p>
+        <label>${t('topbar.hexSeed', 'Hex seed')}</label>
         <input type="text" id="seed-input" value="${cur}" autofocus />`,
       buttons: [
-        { label: 'Cancel', variant: 'ghost' },
-        { label: 'Apply', variant: 'primary', onClick: async () => {
+        { label: t('misc.cancel', 'Cancel'), variant: 'ghost' },
+        { label: t('misc.confirm', 'Apply'), variant: 'primary', onClick: async () => {
           const inp = document.querySelector('nv-modal')?.shadowRoot?.querySelector<HTMLInputElement>('#seed-input');
           if (!inp) return;
           const raw = inp.value.trim().replace(/^0x/i, '');
@@ -109,30 +118,34 @@ export class NvTopbar extends LitElement {
         <span class="dot"></span>
         <span id="fps-val">${fps.value > 0 ? (fps.value / 1000).toFixed(2) + ' kHz' : 'idle'}</span>
       </span>
-      <span class="pill wasm" id="transport-pill" title="Transport settings"
+      <span class="pill wasm" id="transport-pill" title="${t('sidebar.tunables', 'Transport settings')}"
         @click=${this.openTransportSettings}>
         <span class="dot"></span>${transportLabel.value}
       </span>
-      <span class="pill seed" id="seed-pill" title="Set seed"
+      <span class="pill seed" id="seed-pill" title="${t('topbar.seedModalTitle', 'Set seed')}"
         @click=${this.openSeedModal}>
         seed: <b>0x${seedHex}</b>
       </span>
-      <button class="ghost" id="tour-btn" title="Replay the 10-step welcome tour"
-        aria-label="Replay welcome tour"
+      <button class="ghost" id="tour-btn" title="${t('topbar.tourTitle', 'Replay the 10-step welcome tour')}"
+        aria-label="${t('topbar.tourTitle', 'Replay welcome tour')}"
         @click=${() => window.dispatchEvent(new CustomEvent('nv-show-tour'))}>
-        ★ Tour
+        ${t('topbar.tourBtn', '★ Tour')}
       </button>
-      <button class="ghost" id="help-btn" title="Help (press ? any time)" aria-label="Open help"
+      <button class="ghost" id="help-btn" title="${t('topbar.helpTitle', 'Help (press ? any time)')}" aria-label="Open help"
         @click=${() => window.dispatchEvent(new CustomEvent('nv-show-help'))}>
         ?
       </button>
-      <button class="ghost" id="theme-btn" title="Toggle theme" aria-label="Toggle theme"
+      <button class="ghost" id="lang-btn" title="${t('ui.misc.language', 'Language')}" aria-label="Toggle language"
+        @click=${() => setLocale(i18n.getLocale() === 'ja' ? 'en' : 'ja')}>
+        🌐 ${i18n.getLocale() === 'ja' ? 'JA' : 'EN'}
+      </button>
+      <button class="ghost" id="theme-btn" title="${t('action.toggleTheme', 'Toggle theme')}" aria-label="Toggle theme"
         @click=${this.toggleTheme}>
         ${theme.value === 'dark' ? '☼' : '☾'}
       </button>
-      <button id="reset-btn" @click=${this.reset}>↺ Reset</button>
+      <button id="reset-btn" @click=${this.reset}>${t('topbar.resetBtn', '↺ Reset')}</button>
       <button class="primary" id="run-btn" @click=${this.toggleRun}>
-        ${running.value ? '❚❚ Pause' : '▶ Run'}
+        ${running.value ? t('topbar.pauseBtn', '❚❚ Pause') : t('topbar.runBtn', '▶ Run')}
       </button>
     `;
   }

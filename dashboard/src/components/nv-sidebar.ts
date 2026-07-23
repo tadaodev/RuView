@@ -3,6 +3,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { effect } from '@preact/signals-core';
 import { fs, fmod, dtMs, noiseEnabled, running, getClient, pushLog } from '../store/appStore';
+import { t, i18n } from '../i18n';
 
 let configPushTimer: number | null = null;
 function pushConfigDebounced(): void {
@@ -33,6 +34,8 @@ function pushConfigDebounced(): void {
 
 @customElement('nv-sidebar')
 export class NvSidebar extends LitElement {
+  private _unsubI18n?: () => void;
+
   static styles = css`
     :host {
       display: flex; flex-direction: column; gap: 14px;
@@ -117,16 +120,21 @@ export class NvSidebar extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this._unsubI18n = i18n.onLocaleChange(() => this.requestUpdate());
     effect(() => { fs.value; fmod.value; dtMs.value; noiseEnabled.value; running.value; this.requestUpdate(); });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._unsubI18n) this._unsubI18n();
   }
 
   override render() {
     return html`
       <div class="panel">
-        <div class="panel-h">Scene <span class="count">4 sources</span></div>
+        <div class="panel-h">${t('sidebar.sceneTitle', 'Scene')} <span class="count">${t('sidebar.sourcesCount', '4 sources', { count: 4 })}</span></div>
         <div class="panel-help">
-          Magnetic primitives in the simulated environment. Drag any in the
-          canvas to reposition; positions persist across reloads.
+          ${t('sidebar.sceneHelp', 'Magnetic primitives in the simulated environment. Drag any in the canvas to reposition; positions persist across reloads.')}
         </div>
         <div class="scene-item">
           <span class="swatch" style="background:oklch(0.72 0.18 330)"></span>
@@ -151,12 +159,11 @@ export class NvSidebar extends LitElement {
       </div>
 
       <div class="panel">
-        <div class="panel-h">NV sensor <span class="count">COTS</span></div>
+        <div class="panel-h">${t('sidebar.nvSensor', 'NV sensor')} <span class="count">COTS</span></div>
         <div class="panel-help">
-          Element Six DNV-B1 reference: 1 mm³ diamond, ~10¹² NV centers.
-          Floor δB ≈ 1.18 pT/√Hz per Barry 2020 §III.A.
+          ${t('sidebar.nvSensorHelp', 'Element Six DNV-B1 reference: 1 mm³ diamond, ~10¹² NV centers. Floor δB ≈ 1.18 pT/√Hz per Barry 2020 §III.A.')}
           <span class="help-link" title="Open glossary"
-            @click=${() => window.dispatchEvent(new CustomEvent('nv-show-help', { detail: { section: 'glossary' } }))}>What's NV?</span>
+            @click=${() => window.dispatchEvent(new CustomEvent('nv-show-help', { detail: { section: 'glossary' } }))}>${t('sidebar.whatsNv', "What's NV?")}</span>
         </div>
         <div class="field-row" title="Sensing volume (cubic millimetres)"><span class="lbl">V</span><span class="val">1 mm³</span></div>
         <div class="field-row" title="Number of NV centers contributing to readout"><span class="lbl">N</span><span class="val">1e12 NV</span></div>
@@ -166,31 +173,30 @@ export class NvSidebar extends LitElement {
       </div>
 
       <div class="panel">
-        <div class="panel-h">Tunables</div>
+        <div class="panel-h">${t('sidebar.tunables', 'Tunables')}</div>
         <div class="panel-help">
-          Live pipeline parameters. Edits debounce 300 ms then rebuild the
-          WASM pipeline without restarting the frame stream.
+          ${t('sidebar.tunablesHelp', 'Live pipeline parameters. Edits debounce 300 ms then rebuild the WASM pipeline without restarting the frame stream.')}
         </div>
         <div class="slider-row" title="Digitiser sample rate — frames per second emitted by the pipeline">
-          <div class="top"><span class="lbl">Sample rate</span><span class="val">${(fs.value / 1000).toFixed(1)} kHz</span></div>
+          <div class="top"><span class="lbl">${t('sidebar.sampleRate', 'Sample rate')}</span><span class="val">${(fs.value / 1000).toFixed(1)} kHz</span></div>
           <input type="range" min="1000" max="100000" .value=${String(fs.value)}
             aria-label="Sample rate in Hz"
             @input=${(e: Event) => { fs.value = +(e.target as HTMLInputElement).value; pushConfigDebounced(); }} />
         </div>
         <div class="slider-row" title="Microwave modulation frequency for lock-in demodulation">
-          <div class="top"><span class="lbl">Lockin f_mod</span><span class="val">${(fmod.value / 1000).toFixed(3)} kHz</span></div>
+          <div class="top"><span class="lbl">${t('sidebar.lockinFmod', 'Lockin f_mod')}</span><span class="val">${(fmod.value / 1000).toFixed(3)} kHz</span></div>
           <input type="range" min="100" max="5000" .value=${String(fmod.value)}
             aria-label="Lock-in modulation frequency in Hz"
             @input=${(e: Event) => { fmod.value = +(e.target as HTMLInputElement).value; pushConfigDebounced(); }} />
         </div>
         <div class="slider-row" title="Per-sample integration time">
-          <div class="top"><span class="lbl">Integration t</span><span class="val">${dtMs.value.toFixed(1)} ms</span></div>
+          <div class="top"><span class="lbl">${t('sidebar.integrationT', 'Integration t')}</span><span class="val">${dtMs.value.toFixed(1)} ms</span></div>
           <input type="range" min="0.1" max="10" step="0.1" .value=${String(dtMs.value)}
             aria-label="Integration time in milliseconds"
             @input=${(e: Event) => { dtMs.value = +(e.target as HTMLInputElement).value; pushConfigDebounced(); }} />
         </div>
         <div class="slider-row" title="Toggle shot-noise sampling. OFF = analytic noise-free output (debug only)">
-          <div class="top"><span class="lbl">Shot noise</span><span class="val">${noiseEnabled.value ? 'ON' : 'OFF'}</span></div>
+          <div class="top"><span class="lbl">${t('sidebar.shotNoise', 'Shot noise')}</span><span class="val">${noiseEnabled.value ? 'ON' : 'OFF'}</span></div>
           <input type="range" min="0" max="1" .value=${noiseEnabled.value ? '1' : '0'}
             aria-label="Shot-noise sampling enabled"
             @input=${(e: Event) => { noiseEnabled.value = (e.target as HTMLInputElement).value === '1'; pushConfigDebounced(); }} />
@@ -198,10 +204,9 @@ export class NvSidebar extends LitElement {
       </div>
 
       <div class="panel">
-        <div class="panel-h">Pipeline</div>
+        <div class="panel-h">${t('sidebar.pipeline', 'Pipeline')}</div>
         <div class="panel-help">
-          Forward simulator stages, left to right. Stages glow cyan while
-          the pipeline is running.
+          ${t('sidebar.pipelineHelp', 'Forward simulator stages, left to right. Stages glow cyan while the pipeline is running.')}
         </div>
         <div class="pipeline">
           <span class="stage ${running.value ? 'live' : ''}">scene</span>

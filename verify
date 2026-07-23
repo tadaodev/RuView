@@ -54,11 +54,18 @@ EXIT_CODE=0
 declare -a SUMMARY
 declare -a EXTRA_ARGS
 
+LANG_OPT="${RUVIEW_LANG:-${LANG:-en}}"
+IS_JA=false
+if [[ "$LANG_OPT" =~ ^ja ]]; then
+    IS_JA=true
+fi
+
 for arg in "$@"; do
     case "$arg" in
         --quick)         QUICK=1 ;;
         --rust-only)     RUN_PYTHON=0; RUN_SCAN=0; RUN_PYO3=0; RUN_INVARIANT=0; RUN_CRATES=0; RUN_NPM=0; RUN_DOCKER=0; RUN_HOMECORE=0 ;;
         --docker-only)   RUN_PYTHON=0; RUN_SCAN=0; RUN_RUST=0; RUN_PYO3=0; RUN_INVARIANT=0; RUN_CRATES=0; RUN_NPM=0 ;;
+        --lang)          shift; if [[ "${1:-en}" =~ ^ja ]]; then IS_JA=true; else IS_JA=false; fi ;;
         --verbose|--audit|--generate-hash) EXTRA_ARGS+=("$arg") ;;
         -h|--help)
             sed -n '2,30p' "$0"; exit 0 ;;
@@ -86,7 +93,11 @@ phase() { echo ""; echo -e "${CYAN}[PHASE $1] $2${RESET}"; echo ""; }
 
 echo ""
 echo -e "${BOLD}======================================================================"
-echo "  WiFi-DensePose / RuView — Trust Kill Switch (multi-layer proof)"
+if $IS_JA; then
+    echo "  WiFi-DensePose / RuView — 信頼性検証キルスイッチ (マルチレイヤー証明)"
+else
+    echo "  WiFi-DensePose / RuView — Trust Kill Switch (multi-layer proof)"
+fi
 echo -e "======================================================================${RESET}"
 
 PYTHON="$(command -v python3 || command -v python || true)"

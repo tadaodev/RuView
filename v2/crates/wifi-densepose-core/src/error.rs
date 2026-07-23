@@ -22,6 +22,7 @@
 //! ```
 
 use thiserror::Error;
+use crate::i18n::{t_format, Locale};
 
 /// A specialized `Result` type for core operations.
 pub type CoreResult<T> = Result<T, CoreError>;
@@ -161,6 +162,34 @@ impl CoreError {
             | Self::Internal { .. } => false,
         }
     }
+
+    /// Format localized error description for given locale.
+    #[must_use]
+    pub fn localized_display(&self, locale: Locale) -> String {
+        match self {
+            Self::Signal(e) => e.localized_display(locale),
+            Self::Inference(e) => e.localized_display(locale),
+            Self::Storage(e) => e.localized_display(locale),
+            Self::Configuration { message } => {
+                t_format("error.configuration", locale, &[("message", message)])
+            }
+            Self::Validation { message } => {
+                t_format("error.validation", locale, &[("message", message)])
+            }
+            Self::NotFound { resource_type, id } => {
+                t_format("error.not_found", locale, &[("resource_type", resource_type), ("id", id)])
+            }
+            Self::Timeout { operation, duration_ms } => {
+                t_format("error.timeout_op", locale, &[("operation", operation), ("duration_ms", &duration_ms.to_string())])
+            }
+            Self::InvalidState { expected, actual } => {
+                t_format("error.invalid_state", locale, &[("expected", expected), ("actual", actual)])
+            }
+            Self::Internal { message } => {
+                t_format("error.internal", locale, &[("message", message)])
+            }
+        }
+    }
 }
 
 /// Errors related to CSI signal processing.
@@ -265,6 +294,43 @@ impl SignalError {
             | Self::InvalidFrequencyBand { .. } => false,
         }
     }
+
+    /// Format localized error description for given locale.
+    #[must_use]
+    pub fn localized_display(&self, locale: Locale) -> String {
+        match self {
+            Self::InvalidSubcarrierCount { expected, actual } => {
+                t_format("error.invalid_subcarrier_count", locale, &[("expected", &expected.to_string()), ("actual", &actual.to_string())])
+            }
+            Self::InvalidAntennaConfig { message } => {
+                t_format("error.invalid_antenna_config", locale, &[("message", message)])
+            }
+            Self::AmplitudeOutOfRange { value, min, max } => {
+                t_format("error.amplitude_out_of_range", locale, &[("value", &value.to_string()), ("min", &min.to_string()), ("max", &max.to_string())])
+            }
+            Self::PhaseUnwrapFailed { reason } => {
+                t_format("error.phase_unwrap_failed", locale, &[("reason", reason)])
+            }
+            Self::FftFailed { message } => {
+                t_format("error.fft_failed", locale, &[("message", message)])
+            }
+            Self::FilterError { message } => {
+                t_format("error.filter_error", locale, &[("message", message)])
+            }
+            Self::InsufficientSamples { required, available } => {
+                t_format("error.insufficient_samples", locale, &[("required", &required.to_string()), ("available", &available.to_string())])
+            }
+            Self::LowSignalQuality { snr_db, threshold_db } => {
+                t_format("error.low_signal_quality", locale, &[("snr_db", &format!("{snr_db:.2}")), ("threshold_db", &format!("{threshold_db:.2}"))])
+            }
+            Self::TimestampSync { message } => {
+                t_format("error.timestamp_sync", locale, &[("message", message)])
+            }
+            Self::InvalidFrequencyBand { band } => {
+                t_format("error.invalid_frequency_band", locale, &[("band", band)])
+            }
+        }
+    }
 }
 
 /// Errors related to neural network inference.
@@ -356,6 +422,40 @@ impl InferenceError {
             | Self::UnsupportedFormat { .. }
             | Self::QuantizationError { .. }
             | Self::InvalidBatchSize { .. } => false,
+        }
+    }
+
+    /// Format localized error description for given locale.
+    #[must_use]
+    pub fn localized_display(&self, locale: Locale) -> String {
+        match self {
+            Self::ModelLoadFailed { path, reason } => {
+                t_format("error.model_load_failed", locale, &[("path", path), ("reason", reason)])
+            }
+            Self::InputShapeMismatch { expected, actual } => {
+                t_format("error.input_shape_mismatch", locale, &[("expected", &format!("{expected:?}")), ("actual", &format!("{actual:?}"))])
+            }
+            Self::OutputShapeMismatch { expected, actual } => {
+                t_format("error.output_shape_mismatch", locale, &[("expected", &format!("{expected:?}")), ("actual", &format!("{actual:?}"))])
+            }
+            Self::GpuError { message } => {
+                t_format("error.gpu_error", locale, &[("message", message)])
+            }
+            Self::InferenceFailed { message } => {
+                t_format("error.inference_failed", locale, &[("message", message)])
+            }
+            Self::ModelNotInitialized { name } => {
+                t_format("error.model_not_initialized", locale, &[("name", name)])
+            }
+            Self::UnsupportedFormat { format } => {
+                t_format("error.unsupported_format", locale, &[("format", format)])
+            }
+            Self::QuantizationError { message } => {
+                t_format("error.quantization_error", locale, &[("message", message)])
+            }
+            Self::InvalidBatchSize { size, max_size } => {
+                t_format("error.invalid_batch_size", locale, &[("size", &size.to_string()), ("max_size", &max_size.to_string())])
+            }
         }
     }
 }
@@ -452,6 +552,40 @@ impl StorageError {
             | Self::CapacityExceeded { .. } => false,
         }
     }
+
+    /// Format localized error description for given locale.
+    #[must_use]
+    pub fn localized_display(&self, locale: Locale) -> String {
+        match self {
+            Self::ConnectionFailed { message } => {
+                t_format("error.storage_connection_failed", locale, &[("message", message)])
+            }
+            Self::QueryFailed { query_type, message } => {
+                t_format("error.storage_query_failed", locale, &[("query_type", query_type), ("message", message)])
+            }
+            Self::RecordNotFound { table, id } => {
+                t_format("error.storage_record_not_found", locale, &[("table", table), ("id", id)])
+            }
+            Self::DuplicateKey { table, key } => {
+                t_format("error.storage_duplicate_key", locale, &[("table", table), ("key", key)])
+            }
+            Self::TransactionError { message } => {
+                t_format("error.storage_transaction_error", locale, &[("message", message)])
+            }
+            Self::SerializationError { message } => {
+                t_format("error.storage_serialization_error", locale, &[("message", message)])
+            }
+            Self::CacheError { message } => {
+                t_format("error.storage_cache_error", locale, &[("message", message)])
+            }
+            Self::MigrationError { message } => {
+                t_format("error.storage_migration_error", locale, &[("message", message)])
+            }
+            Self::CapacityExceeded { current, limit } => {
+                t_format("error.storage_capacity_exceeded", locale, &[("current", &current.to_string()), ("limit", &limit.to_string())])
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -502,5 +636,19 @@ mod tests {
         let err = CoreError::timeout("inference", 5000);
         assert!(err.to_string().contains("5000ms"));
         assert!(err.to_string().contains("inference"));
+    }
+
+    #[test]
+    fn test_localized_error_display() {
+        let err = CoreError::configuration("bad config");
+        assert_eq!(err.localized_display(Locale::En), "Configuration error: bad config");
+        assert_eq!(err.localized_display(Locale::Ja), "設定エラー: bad config");
+
+        let sig_err = CoreError::Signal(SignalError::InvalidSubcarrierCount {
+            expected: 256,
+            actual: 64,
+        });
+        assert_eq!(sig_err.localized_display(Locale::En), "Invalid subcarrier count: expected 256, got 64");
+        assert_eq!(sig_err.localized_display(Locale::Ja), "サブキャリア数が無効です: 期待値 256、実際 64");
     }
 }

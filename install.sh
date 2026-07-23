@@ -42,6 +42,11 @@ PROFILE=""
 CHECK_ONLY=false
 VERBOSE=false
 SKIP_CONFIRM=false
+LANG_OPT="${RUVIEW_LANG:-${LANG:-en}}"
+IS_JA=false
+if [[ "$LANG_OPT" =~ ^ja ]]; then
+    IS_JA=true
+fi
 INSTALL_LOG="${SCRIPT_DIR}/.install.log"
 
 # Hardware detection results
@@ -77,8 +82,13 @@ need() { echo -e "  ${BLUE}NEED${RESET}  $1"; }
 banner() {
     echo ""
     echo -e "${BOLD}======================================================================"
-    echo "  WiFi-DensePose Installer"
-    echo "  Hardware detection + environment-specific RVF builds"
+    if $IS_JA; then
+        echo "  WiFi-DensePose インストーラー"
+        echo "  ハードウェア検出と環境別 RVF ビルド"
+    else
+        echo "  WiFi-DensePose Installer"
+        echo "  Hardware detection + environment-specific RVF builds"
+    fi
     echo -e "======================================================================${RESET}"
     echo ""
 }
@@ -91,6 +101,7 @@ usage() {
     echo "  --check-only        Run hardware/environment checks only"
     echo "  --verbose           Show detailed output"
     echo "  --yes               Skip confirmation prompts"
+    echo "  --lang LANG         Select language locale (en/ja)"
     echo "  --help              Show this help"
     echo ""
     echo "Profiles:"
@@ -117,6 +128,7 @@ while [[ $# -gt 0 ]]; do
         --check-only) CHECK_ONLY=true; shift ;;
         --verbose)   VERBOSE=true; shift ;;
         --yes)       SKIP_CONFIRM=true; shift ;;
+        --lang)      LANG_OPT="$2"; if [[ "$2" =~ ^ja ]]; then IS_JA=true; else IS_JA=false; fi; shift 2 ;;
         --help|-h)   usage; exit 0 ;;
         *)           echo "Unknown option: $1"; usage; exit 1 ;;
     esac
@@ -130,7 +142,11 @@ echo "WiFi-DensePose install log - $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${INSTALL_
 # ======================================================================
 
 detect_system() {
-    step "1/7" "System Detection"
+    if $IS_JA; then
+        step "1/7" "システム検出"
+    else
+        step "1/7" "System Detection"
+    fi
     echo ""
 
     # OS

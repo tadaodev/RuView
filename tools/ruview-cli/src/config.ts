@@ -12,6 +12,7 @@ export interface RuviewCliConfig {
   poseCogBinary: string;
   countCogBinary: string;
   jobsDir: string;
+  lang: string;
 }
 
 function envOrDefault(key: string, fallback: string): string {
@@ -19,6 +20,7 @@ function envOrDefault(key: string, fallback: string): string {
 }
 
 export function loadConfig(): RuviewCliConfig {
+  const langEnv = envOrDefault("RUVIEW_LANG", process.env["LANG"] ?? "en").toLowerCase();
   return {
     sensingServerUrl: envOrDefault(
       "RUVIEW_SENSING_SERVER_URL",
@@ -31,5 +33,6 @@ export function loadConfig(): RuviewCliConfig {
       "RUVIEW_JOBS_DIR",
       path.join(os.homedir(), ".ruview", "jobs")
     ),
+    lang: langEnv.startsWith("ja") ? "ja" : "en",
   };
 }

@@ -47,12 +47,14 @@
 extern crate alloc;
 
 pub mod error;
+pub mod i18n;
 pub mod traits;
 pub mod types;
 pub mod utils;
 
 // Re-export commonly used types at the crate root
 pub use error::{CoreError, CoreResult, InferenceError, SignalError, StorageError};
+pub use i18n::{t, t_format, t_with_fallback, Locale};
 pub use traits::{CanonicalFrame, DataStore, NeuralInference, SignalProcessor};
 pub use types::{
     AntennaConfig,

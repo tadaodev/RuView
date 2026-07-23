@@ -1,5 +1,9 @@
 # RuView Troubleshooting Guide
 
+<p align="center">
+  <strong>English | <a href="TROUBLESHOOTING.ja.md">日本語</a></strong>
+</p>
+
 Known issues and fixes from the rebase-to-upstream branch (upstream #301).
 
 ---

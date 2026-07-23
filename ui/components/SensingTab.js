@@ -209,13 +209,15 @@ export class SensingTab {
     const text   = this.container.querySelector('#sensingState');
     const banner = this.container.querySelector('#sensingSourceBanner');
 
+    const t = (k, fb) => (window.i18n ? window.i18n.t(k, fb) : fb);
+
     if (dot && text) {
       const stateLabels = {
-        disconnected: 'Disconnected',
-        connecting:   'Connecting...',
-        connected:    'Connected',
-        reconnecting: 'Reconnecting...',
-        simulated:    'Simulated',
+        disconnected: t('conn.offline', 'Disconnected'),
+        connecting:   t('conn.connecting', 'Connecting...'),
+        connected:    t('conn.connected', 'Connected'),
+        reconnecting: t('conn.reconnecting', 'Reconnecting...'),
+        simulated:    t('conn.simulated', 'Simulated'),
       };
       dot.className = 'sensing-dot ' + state;
       text.textContent = stateLabels[state] || state;
@@ -225,10 +227,10 @@ export class SensingTab {
       // Map the service's dataSource to banner text and CSS modifier class.
       const dataSource = sensingService.dataSource;
       const bannerConfig = {
-        'live':              { text: 'LIVE \u2014 ESP32 HARDWARE',           cls: 'sensing-source-live' },
-        'server-simulated':  { text: 'SIMULATED \u2014 NO HARDWARE',        cls: 'sensing-source-server-sim' },
-        'reconnecting':      { text: 'RECONNECTING...',                    cls: 'sensing-source-reconnecting' },
-        'simulated':         { text: 'OFFLINE \u2014 CLIENT SIMULATION',    cls: 'sensing-source-simulated' },
+        'live':              { text: t('sensing.bannerLive', 'LIVE \u2014 ESP32 HARDWARE'),           cls: 'sensing-source-live' },
+        'server-simulated':  { text: t('sensing.bannerServerSim', 'SIMULATED \u2014 NO HARDWARE'),        cls: 'sensing-source-server-sim' },
+        'reconnecting':      { text: t('sensing.bannerReconnecting', 'RECONNECTING...'),                    cls: 'sensing-source-reconnecting' },
+        'simulated':         { text: t('sensing.bannerSimulated', 'OFFLINE \u2014 CLIENT SIMULATION'),    cls: 'sensing-source-simulated' },
       };
       const cfg = bannerConfig[dataSource] || bannerConfig.reconnecting;
       banner.textContent = cfg.text;

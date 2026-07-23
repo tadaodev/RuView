@@ -1,5 +1,9 @@
 # Claude Code Configuration — WiFi-DensePose + Claude Flow V3
 
+<p align="center">
+  <strong>English | <a href="CLAUDE.ja.md">日本語</a></strong>
+</p>
+
 ## Project: wifi-densepose
 
 WiFi-based human pose estimation using Channel State Information (CSI).

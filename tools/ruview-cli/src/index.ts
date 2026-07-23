@@ -45,6 +45,11 @@ const cli = yargs(hideBin(process.argv))
   .scriptName("ruview-cli")
   .version(VERSION)
   .usage("$0 <command> [options]")
+  .option("lang", {
+    type: "string",
+    choices: ["en", "ja"],
+    description: "Language locale for CLI output (en/ja)",
+  })
   .strict()
   .help()
   .wrap(100);

@@ -13,7 +13,7 @@ readme = "README.md"
 
 [features]
 default = ["std"]
-std = []
+std = ["dep:serde_json"]
 serde = ["dep:serde", "ndarray/serde"]
 async = ["dep:async-trait"]
 
@@ -23,6 +23,7 @@ thiserror.workspace = true
 
 # Serialization (optional)
 serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 
 # Numeric types
 ndarray.workspace = true

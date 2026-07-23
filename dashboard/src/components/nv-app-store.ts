@@ -20,6 +20,7 @@ import {
 import { kvGet, kvSet } from '../store/persistence';
 import { pushLog, activeAppIds, appEvents, appEventCounts } from '../store/appStore';
 import { hasRuntime } from '../store/appRuntimes';
+import { t, i18n } from '../i18n';
 
 const activations = signal<AppActivation[]>(defaultActivations());
 const query = signal<string>('');
@@ -230,11 +231,17 @@ export class NvAppStore extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this._unsubI18n = i18n.onLocaleChange(() => this.requestUpdate());
     effect(() => {
       activations.value; query.value; activeCat.value; statusFilter.value;
       appEvents.value; appEventCounts.value;
       this.renderTick++;
     });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._unsubI18n) this._unsubI18n();
   }
 
   private isActive(id: string): boolean {
@@ -248,26 +255,24 @@ export class NvAppStore extends LitElement {
     if (!wasActive) {
       const r = app.runtime ?? 'mesh-only';
       const note = r === 'simulated' ? ' · live runtime engaged'
-        : r === 'mesh-only' ? ' · queued (needs ESP32 mesh)'
-        : '';
-      pushLog('ok', `app <span class="k">${app.id}</span> activated${note}`);
-    } else {
-      pushLog('info', `app <span class="k">${app.id}</span> deactivated`);
+        : r === 'running' ? ' · platform kernel'
+        : ' · mesh transport required';
+      toast(`Activated ${app.name}${note}`, '✦');
     }
   }
 
   private filtered(): AppManifest[] {
-    let list = APPS;
-    if (activeCat.value !== 'all') list = list.filter((a) => a.category === activeCat.value);
-    if (statusFilter.value !== 'all') list = list.filter((a) => a.status === statusFilter.value);
-    if (query.value.trim()) {
-      list = list
-        .map((a) => ({ a, s: fuzzyMatch(query.value, a) }))
-        .filter((x) => x.s > 0)
-        .sort((a, b) => b.s - a.s)
-        .map((x) => x.a);
-    }
-    return list;
+    const q = query.value.trim().toLowerCase();
+    const cat = activeCat.value;
+    const st = statusFilter.value;
+    return APPS.filter((a) => {
+      if (cat !== 'all' && a.category !== cat) return false;
+      if (st !== 'all' && a.status !== st) return false;
+      if (!q) return true;
+      return a.name.toLowerCase().includes(q)
+        || a.summary.toLowerCase().includes(q)
+        || a.tags.some((t) => t.toLowerCase().includes(q));
+    });
   }
 
   private categoryCounts(): Record<string, number> {
@@ -284,10 +289,10 @@ export class NvAppStore extends LitElement {
     return html`
       <div class="head">
         <div class="ttl">
-          App Store
+          ${t('appstore.title', 'App Store')}
           <small>${APPS.length} edge apps · ${activeCount} active</small>
         </div>
-        <input class="search" id="app-search" placeholder="Search by name, tag, or category…"
+        <input class="search" id="app-search" placeholder="${t('appstore.searchPlaceholder', 'Search by name, tag, or category…')}"
           .value=${query.value}
           @input=${(e: Event) => { query.value = (e.target as HTMLInputElement).value; }} />
       </div>
@@ -295,7 +300,7 @@ export class NvAppStore extends LitElement {
       <div class="filters">
         <span class="chip ${activeCat.value === 'all' ? 'on' : ''}"
           @click=${() => activeCat.value = 'all'}>
-          All<span class="count">${counts.all}</span>
+          ${t('appstore.all', 'All')}<span class="count">${counts.all}</span>
         </span>
         ${(Object.keys(CATEGORIES) as AppCategory[]).map((k) => html`
           <span class="chip ${activeCat.value === k ? 'on' : ''}"

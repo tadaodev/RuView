@@ -4,6 +4,7 @@
 
 use clap::Parser;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use wifi_densepose_core::i18n::{t, Locale};
 
 use wifi_densepose_cli::{Cli, Commands};
 
@@ -14,6 +15,12 @@ async fn main() -> anyhow::Result<()> {
         .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(tracing_subscriber::fmt::layer().with_target(false))
         .init();
+
+    let lang = std::env::var("RUVIEW_LANG")
+        .or_else(|_| std::env::var("LANG"))
+        .unwrap_or_default();
+    let locale = Locale::from_str(&lang);
+    tracing::info!("{}", t("log.info_initialized", locale));
 
     let cli = Cli::parse();
 

@@ -12,6 +12,7 @@ import { SparklineChart } from '@/components/SparklineChart';
 import { usePoseStore } from '@/stores/poseStore';
 import { usePoseStream } from '@/hooks/usePoseStream';
 import { colors } from '@/theme/colors';
+import { t } from '@/utils/i18n';
 
 type ConnectionBannerState = 'connected' | 'simulated' | 'disconnected';
 
@@ -73,26 +74,26 @@ export default function VitalsScreen() {
 
         <View style={styles.section}>
           <ThemedText preset="labelLg" color="textSecondary">
-            RSSI HISTORY
+            {t('mobile.rssiHistory', 'RSSI HISTORY')}
           </ThemedText>
           <SparklineChart data={rssiHistory.length > 0 ? rssiHistory : [0]} color={colors.accent} />
         </View>
 
-        <MetricCard label="Variance" value={features?.variance ?? 0} unit="" sparklineData={rssiHistory} color={colors.accent} />
+        <MetricCard label={t('mobile.variance', 'Variance')} value={features?.variance ?? 0} unit="" sparklineData={rssiHistory} color={colors.accent} />
         <MetricCard
-          label="Motion Band"
+          label={t('mobile.motionBand', 'Motion Band')}
           value={features?.motion_band_power ?? 0}
           unit=""
           color={colors.success}
         />
         <MetricCard
-          label="Breath Band"
+          label={t('mobile.breathBand', 'Breath Band')}
           value={features?.breathing_band_power ?? 0}
           unit=""
           color={colors.warn}
         />
         <MetricCard
-          label="Spectral Entropy"
+          label={t('mobile.spectralEntropy', 'Spectral Entropy')}
           value={features?.spectral_entropy ?? 0}
           unit=""
           color={colors.connected}
@@ -100,7 +101,7 @@ export default function VitalsScreen() {
 
         <View style={styles.classificationSection}>
           <ThemedText preset="labelLg" style={styles.rowLabel}>
-            Classification: {badgeLabel}
+            {t('mobile.classification', 'Classification')}: {badgeLabel}
           </ThemedText>
           <View style={[styles.badgePill, { borderColor: classificationColor, backgroundColor: `${classificationColor}18` }]}>
             <ThemedText preset="labelMd" style={{ color: classificationColor }}>
@@ -109,7 +110,7 @@ export default function VitalsScreen() {
           </View>
           <View style={styles.confidenceContainer}>
             <ThemedText preset="bodySm" color="textSecondary">
-              Confidence
+              {t('mobile.confidence', 'Confidence')}
             </ThemedText>
             <View style={styles.confidenceBarTrack}>
               <Animated.View style={[styles.confidenceBarFill, animatedConfidenceStyle]} />

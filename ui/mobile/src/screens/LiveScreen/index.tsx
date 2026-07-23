@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { usePoseStream } from '@/hooks/usePoseStream';
 import { colors, spacing } from '@/theme';
 import type { ConnectionStatus, SensingFrame } from '@/types/sensing';
+import { t } from '@/utils/i18n';
 import { LiveHUD } from './LiveHUD';
 
 type LiveMode = 'LIVE' | 'SIM' | 'RSSI';
@@ -95,9 +96,9 @@ export const LiveScreen = () => {
   if (error) {
     return (
       <ThemedView style={styles.fallbackWrap}>
-        <ThemedText preset="bodyLg">Live visualization failed</ThemedText>
+        <ThemedText preset="bodyLg">{t('mobile.liveVisFailed', 'Live visualization failed')}</ThemedText>
         <ThemedText preset="bodySm" color="textSecondary" style={styles.errorText}>{error}</ThemedText>
-        <Button title="Retry" onPress={handleRetry} />
+        <Button title={t('mobile.retry', 'Retry')} onPress={handleRetry} />
       </ThemedView>
     );
   }
@@ -123,7 +124,7 @@ export const LiveScreen = () => {
         {!ready && (
           <View style={styles.loadingWrap}>
             <LoadingSpinner />
-            <ThemedText preset="bodyMd" style={styles.loadingText}>Loading live renderer</ThemedText>
+            <ThemedText preset="bodyMd" style={styles.loadingText}>{t('mobile.loadingRenderer', 'Loading live renderer')}</ThemedText>
           </View>
         )}
       </View>

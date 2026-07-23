@@ -5570,15 +5570,15 @@ async fn nodes_endpoint(State(state): State<SharedState>) -> Json<serde_json::Va
 
 async fn info_page() -> Html<String> {
     Html(
-        "<html><body>\
-         <h1>WiFi-DensePose Sensing Server</h1>\
-         <p>Rust + Axum + RuVector</p>\
+        "<!DOCTYPE html><html lang='ja'><head><meta charset='utf-8'><title>WiFi-DensePose Sensing Server</title></head><body>\
+         <h1>WiFi-DensePose センシングサーバー</h1>\
+         <p>Rust + Axum + RuVector 高速WiFiセンシング基盤</p>\
          <ul>\
-         <li><a href='/health'>/health</a> — Server health</li>\
-         <li><a href='/api/v1/sensing/latest'>/api/v1/sensing/latest</a> — Latest sensing data</li>\
-         <li><a href='/api/v1/vital-signs'>/api/v1/vital-signs</a> — Vital sign estimates (HR/RR)</li>\
-         <li><a href='/api/v1/model/info'>/api/v1/model/info</a> — RVF model container info</li>\
-         <li>ws://localhost:8765/ws/sensing — WebSocket stream</li>\
+         <li><a href='/health'>/health</a> — サーバーヘルスチェック</li>\
+         <li><a href='/api/v1/sensing/latest'>/api/v1/sensing/latest</a> — 最新のセンシングデータ</li>\
+         <li><a href='/api/v1/vital-signs'>/api/v1/vital-signs</a> — バイタルサイン推定値 (心拍数/呼吸数)</li>\
+         <li><a href='/api/v1/model/info'>/api/v1/model/info</a> — RVFモデルコンテナ情報</li>\
+         <li>ws://localhost:8765/ws/sensing — リアルタイム WebSocket ストリーム</li>\
          </ul>\
          </body></html>"
          .to_string()

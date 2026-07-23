@@ -1,5 +1,9 @@
 # PROOF — reproduce every claim, or find the one we can't yet
 
+<p align="center">
+  <strong>English | <a href="PROOF.ja.md">日本語</a></strong>
+</p>
+
 This project (RuView / wifi-densepose) has been publicly called "AI slop" and
 "fake." This document is the answer: **a skeptic can clone the repo, run one
 script, and have every headline claim either verified on their own machine or

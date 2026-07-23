@@ -37,6 +37,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use axum::{http::StatusCode, response::Json};
 use serde_json::json;
+use wifi_densepose_core::i18n::{t_format, Locale};
 
 /// Monotonic component of the correlation id, so two errors in the same
 /// nanosecond still get distinct ids. Wraps harmlessly.
@@ -69,11 +70,21 @@ pub fn correlation_id() -> String {
 /// client.
 pub fn internal_error(context: &str, detail: impl Display) -> (StatusCode, Json<serde_json::Value>) {
     let cid = correlation_id();
+    let locale = std::env::var("RUVIEW_LANG")
+        .or_else(|_| std::env::var("LANG"))
+        .map(|s| Locale::from_str(&s))
+        .unwrap_or_default();
+    let loc_msg = t_format(
+        "log.internal_error_logged",
+        locale,
+        &[("correlation_id", &cid), ("context", context), ("detail", &detail.to_string())],
+    );
     // Server-side only — this is where the real detail lives.
     tracing::error!(
         correlation_id = %cid,
         context = context,
         detail = %detail,
+        localized_msg = %loc_msg,
         "internal error (detail logged server-side only; client received a generic body)"
     );
     (
@@ -93,10 +104,20 @@ pub fn internal_error(context: &str, detail: impl Display) -> (StatusCode, Json<
 /// never reaches the client.
 pub fn internal_error_json(context: &str, detail: impl Display) -> Json<serde_json::Value> {
     let cid = correlation_id();
+    let locale = std::env::var("RUVIEW_LANG")
+        .or_else(|_| std::env::var("LANG"))
+        .map(|s| Locale::from_str(&s))
+        .unwrap_or_default();
+    let loc_msg = t_format(
+        "log.internal_error_logged",
+        locale,
+        &[("correlation_id", &cid), ("context", context), ("detail", &detail.to_string())],
+    );
     tracing::error!(
         correlation_id = %cid,
         context = context,
         detail = %detail,
+        localized_msg = %loc_msg,
         "internal error (detail logged server-side only; client received a generic body)"
     );
     Json(json!({
@@ -114,10 +135,20 @@ pub fn upstream_unavailable(
     detail: impl Display,
 ) -> (StatusCode, Json<serde_json::Value>) {
     let cid = correlation_id();
+    let locale = std::env::var("RUVIEW_LANG")
+        .or_else(|_| std::env::var("LANG"))
+        .map(|s| Locale::from_str(&s))
+        .unwrap_or_default();
+    let loc_msg = t_format(
+        "log.upstream_unavailable_logged",
+        locale,
+        &[("correlation_id", &cid), ("context", context), ("detail", &detail.to_string())],
+    );
     tracing::warn!(
         correlation_id = %cid,
         context = context,
         detail = %detail,
+        localized_msg = %loc_msg,
         "upstream unavailable (detail logged server-side only; client received a generic body)"
     );
     (

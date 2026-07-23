@@ -2,10 +2,12 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { View } from './nv-app';
+import { t, i18n } from '../i18n';
 
 @customElement('nv-rail')
 export class NvRail extends LitElement {
   @property() view: View = 'scene';
+  private _unsubI18n?: () => void;
 
   static styles = css`
     :host {
@@ -55,6 +57,16 @@ export class NvRail extends LitElement {
     svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
   `;
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this._unsubI18n = i18n.onLocaleChange(() => this.requestUpdate());
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._unsubI18n) this._unsubI18n();
+  }
+
   private navigate(v: View): void {
     this.dispatchEvent(new CustomEvent('navigate', { detail: v }));
   }
@@ -65,38 +77,38 @@ export class NvRail extends LitElement {
       <nav role="navigation" aria-label="Primary"
         style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;">
       <button class="btn ${this.view === 'home' ? 'active' : ''}"
-        data-id="home-btn" title="Home" aria-label="Home"
+        data-id="home-btn" title="${t('rail.home', 'Home')}" aria-label="${t('rail.home', 'Home')}"
         aria-current=${this.view === 'home' ? 'page' : 'false'}
         @click=${() => this.navigate('home')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12L12 4l9 8M5 10v10h14V10"/></svg>
       </button>
       <button class="btn ${this.view === 'scene' ? 'active' : ''}"
-        data-id="scene-btn" title="Scene" aria-label="Scene"
+        data-id="scene-btn" title="${t('rail.scene', 'Scene')}" aria-label="${t('rail.scene', 'Scene')}"
         aria-current=${this.view === 'scene' ? 'page' : 'false'}
         @click=${() => this.navigate('scene')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L3 7l9 5 9-5-9-5zm0 13l-9-5v6l9 5 9-5v-6l-9 5z"/></svg>
       </button>
       <button class="btn ${this.view === 'apps' ? 'active' : ''}"
-        data-id="apps-btn" title="App Store" aria-label="App Store"
+        data-id="apps-btn" title="${t('rail.apps', 'App Store')}" aria-label="${t('rail.apps', 'App Store')}"
         aria-current=${this.view === 'apps' ? 'page' : 'false'}
         @click=${() => this.navigate('apps')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       </button>
       <button class="btn ${this.view === 'inspector' ? 'active' : ''}"
-        data-id="inspector-btn" title="Inspector" aria-label="Inspector"
+        data-id="inspector-btn" title="${t('rail.inspector', 'Inspector')}" aria-label="${t('rail.inspector', 'Inspector')}"
         aria-current=${this.view === 'inspector' ? 'page' : 'false'}
         @click=${() => this.navigate('inspector')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg>
       </button>
       <button class="btn ${this.view === 'witness' ? 'active' : ''}"
-        data-id="witness-btn" title="Witness" aria-label="Witness"
+        data-id="witness-btn" title="${t('rail.witness', 'Witness')}" aria-label="${t('rail.witness', 'Witness')}"
         aria-current=${this.view === 'witness' ? 'page' : 'false'}
         @click=${() => this.navigate('witness')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
       </button>
       <button class="btn ghost ${this.view === 'ghost-murmur' ? 'active' : ''}"
-        data-id="ghost-murmur-btn" title="Ghost Murmur — research spec"
-        aria-label="Ghost Murmur research"
+        data-id="ghost-murmur-btn" title="${t('rail.ghostMurmur', 'Ghost Murmur — research spec')}"
+        aria-label="${t('rail.ghostMurmur', 'Ghost Murmur — research spec')}"
         aria-current=${this.view === 'ghost-murmur' ? 'page' : 'false'}
         @click=${() => this.navigate('ghost-murmur')}>
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -107,7 +119,7 @@ export class NvRail extends LitElement {
       </button>
       </nav>
       <div class="spacer"></div>
-      <button class="btn" data-id="settings-btn" title="Settings" aria-label="Settings"
+      <button class="btn" data-id="settings-btn" title="${t('rail.settings', 'Settings')}" aria-label="${t('rail.settings', 'Settings')}"
         @click=${() => this.dispatchEvent(new CustomEvent('open-settings', { bubbles: true, composed: true }))}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       </button>

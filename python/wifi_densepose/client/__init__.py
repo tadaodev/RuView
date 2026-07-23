@@ -66,6 +66,8 @@ __all__ = [
     "SemanticPrimitive",
     "SemanticPrimitiveEvent",
     "SemanticPrimitiveListener",
+    # cli — pure stdlib
+    "run_cli",
 ]
 
 
@@ -78,6 +80,9 @@ def __getattr__(name: str):
     — defeating the point of an *optional* extra. We defer the import
     until the attribute is actually looked up.
     """
+    if name == "run_cli":
+        from wifi_densepose.client.cli import run_cli as _run_cli
+        return _run_cli
     if name in {
         "SensingClient",
         "SensingMessage",

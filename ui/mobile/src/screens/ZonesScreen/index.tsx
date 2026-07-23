@@ -7,6 +7,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { usePoseStore } from '@/stores/poseStore';
 import { type ConnectionStatus } from '@/types/sensing';
+import { t } from '@/utils/i18n';
 import { useOccupancyGrid } from './useOccupancyGrid';
 import { FloorPlanSvg } from './FloorPlanSvg';
 import { ZoneLegend } from './ZoneLegend';
@@ -50,7 +51,7 @@ export const ZonesScreen = () => {
           }}
         >
           <ThemedText preset="labelLg" style={{ color: colors.textSecondary, marginBottom: 8 }}>
-            Floor Plan — Occupancy Heatmap
+            {t('mobile.floorPlan', 'Floor Plan — Occupancy Heatmap')}
           </ThemedText>
         </View>
 
@@ -71,8 +72,8 @@ export const ZonesScreen = () => {
             gap: spacing.md,
           }}
         >
-          <ThemedText preset="bodyMd">Occupancy: {personPositions.length} persons detected</ThemedText>
-          <ThemedText preset="bodyMd">Last update: {getLastUpdateSeconds(lastFrame?.timestamp)}</ThemedText>
+          <ThemedText preset="bodyMd">{t('mobile.occupancy', 'Occupancy')}: {personPositions.length} {t('mobile.personsDetected', 'persons detected', { count: personPositions.length })}</ThemedText>
+          <ThemedText preset="bodyMd">{t('mobile.lastUpdate', 'Last update')}: {getLastUpdateSeconds(lastFrame?.timestamp)}</ThemedText>
         </View>
       </ScrollView>
     </ThemedView>

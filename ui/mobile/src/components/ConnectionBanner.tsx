@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { ThemedText } from './ThemedText';
+import { t } from '../utils/i18n';
 
 type ConnectionState = 'connected' | 'simulated' | 'disconnected';
 
@@ -10,7 +11,7 @@ type ConnectionBannerProps = {
 const resolveState = (status: ConnectionState) => {
   if (status === 'connected') {
     return {
-      label: 'LIVE STREAM',
+      label: t('mobile.liveStream', 'LIVE STREAM'),
       backgroundColor: '#0F6B2A',
       textColor: '#E2FFEA',
     };
@@ -18,14 +19,14 @@ const resolveState = (status: ConnectionState) => {
 
   if (status === 'disconnected') {
     return {
-      label: 'DISCONNECTED',
+      label: t('mobile.disconnected', 'DISCONNECTED'),
       backgroundColor: '#8A1E2A',
       textColor: '#FFE3E7',
     };
   }
 
   return {
-    label: 'SIMULATED DATA',
+    label: t('mobile.simulatedData', 'SIMULATED DATA'),
     backgroundColor: '#9A5F0C',
     textColor: '#FFF3E1',
   };

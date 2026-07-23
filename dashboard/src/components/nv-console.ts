@@ -7,11 +7,13 @@ import {
   getClient, seed, theme, expectedWitness, witnessHex, witnessVerified,
   running, replHistory, pushReplHistory,
 } from '../store/appStore';
+import { t, i18n } from '../i18n';
 
 @customElement('nv-console')
 export class NvConsole extends LitElement {
   @query('#console-input') private inputEl!: HTMLInputElement;
   private hIdx = -1;
+  private _unsubI18n?: () => void;
 
   static styles = css`
     :host {
@@ -98,10 +100,16 @@ export class NvConsole extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this._unsubI18n = i18n.onLocaleChange(() => this.requestUpdate());
     effect(() => {
       consoleLines.value; consoleFilter.value; consolePaused.value;
       this.requestUpdate();
     });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._unsubI18n) this._unsubI18n();
   }
 
   override updated(): void {
