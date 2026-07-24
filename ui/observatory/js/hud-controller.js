@@ -240,15 +240,25 @@ export class HudController {
 
     // Data source
     const dsSel = document.getElementById('opt-data-source');
+    const dsQuickSel = document.getElementById('datasource-quick-select');
+    if (dsQuickSel) dsQuickSel.value = s.dataSource;
     dsSel.value = s.dataSource;
-    dsSel.addEventListener('change', (e) => {
-      s.dataSource = e.target.value;
-      document.getElementById('ws-url-row').style.display = e.target.value === 'ws' ? 'flex' : 'none';
-      if (e.target.value === 'ws' && s.wsUrl) obs._connectWS(s.wsUrl);
+
+    const handleDsChange = (val) => {
+      s.dataSource = val;
+      dsSel.value = val;
+      if (dsQuickSel) dsQuickSel.value = val;
+      document.getElementById('ws-url-row').style.display = val === 'ws' ? 'flex' : 'none';
+      if (val === 'ws' && s.wsUrl) obs._connectWS(s.wsUrl);
       else obs._disconnectWS();
-      this.updateSourceBadge(s.dataSource, obs._ws);
+      this.updateSourceBadge(val, obs._ws);
       this.saveSettings();
-    });
+    };
+
+    dsSel.addEventListener('change', (e) => handleDsChange(e.target.value));
+    if (dsQuickSel) {
+      dsQuickSel.addEventListener('change', (e) => handleDsChange(e.target.value));
+    }
     document.getElementById('ws-url-row').style.display = s.dataSource === 'ws' ? 'flex' : 'none';
 
     const wsInput = document.getElementById('opt-ws-url');

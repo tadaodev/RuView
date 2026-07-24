@@ -251,10 +251,15 @@ export class NvHome extends LitElement {
 
   private async runDemo(): Promise<void> {
     const c = getClient(); if (!c) return;
-    if (running.value) return;
-    await c.run();
-    running.value = true;
-    pushLog('ok', 'demo started · streaming MagFrames');
+    if (running.value) {
+      await c.pause();
+      running.value = false;
+      pushLog('info', 'simulation paused');
+    } else {
+      await c.run();
+      running.value = true;
+      pushLog('ok', 'demo started · streaming MagFrames');
+    }
   }
 
   override render() {

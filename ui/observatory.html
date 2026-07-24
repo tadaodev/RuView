@@ -25,6 +25,10 @@
         <span class="dot dot--demo"></span>
         <span id="data-source-label">DEMO</span>
       </div>
+      <select id="datasource-quick-select" title="データソース切替" style="background:var(--panel-bg); color:var(--text-primary); border:1px solid var(--border-color); border-radius:6px; padding:4px 8px; font-size:12px; font-family:var(--font-sans); cursor:pointer;">
+        <option value="demo" data-i18n="observatory.datasource.demo">デモジェネレータ</option>
+        <option value="ws" data-i18n="observatory.datasource.ws">ライブ WebSocket</option>
+      </select>
       <div id="scenario-area">
         <span id="autoplay-icon" title="Auto-cycling">&#9654;</span>
         <select id="scenario-quick-select" title="Change scenario">
