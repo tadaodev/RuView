@@ -28,7 +28,7 @@ truth.
 | Module | File | What It Does | Event IDs | Budget |
 |---|---|---|---|---|
 | Forklift Proximity | `ind_forklift_proximity.rs` | Warns when pedestrians are near moving forklifts/AGVs | 500--502 | S (<5 ms) |
-| Confined Space | `ind_confined_space.rs` | Monitors worker vitals in tanks, manholes, vessels | 510--514 | L (<2 ms) |
+| Confined Space | `ind_confined_space.rs` | Monitors worker vitals (Vital Signs / **バイタル測定（心拍・呼吸）**) in tanks, manholes, vessels | 510--514 | L (<2 ms) |
 | Clean Room | `ind_clean_room.rs` | Personnel count and turbulent motion for ISO 14644 | 520--523 | L (<2 ms) |
 | Livestock Monitor | `ind_livestock_monitor.rs` | Animal health monitoring in pens, barns, enclosures | 530--533 | L (<2 ms) |
 | Structural Vibration | `ind_structural_vibration.rs` | Seismic, resonance, and structural drift detection | 540--543 | H (<10 ms) |

@@ -4,17 +4,17 @@
 
 ## Important Disclaimer
 
-These modules are **research tools, not FDA-approved medical devices**. They should supplement -- not replace -- professional medical monitoring. WiFi CSI-derived vital signs are inherently noisier than clinical instruments (ECG, pulse oximetry, respiratory belts). False positives and false negatives will occur. Always validate findings against clinical-grade equipment before acting on alerts.
+These modules are **research tools, not FDA-approved medical devices**. They should supplement -- not replace -- professional medical monitoring. WiFi CSI-derived Vital Signs (**バイタル測定（心拍・呼吸）**) are inherently noisier than clinical instruments (ECG, pulse oximetry, respiratory belts). False positives and false negatives will occur. Always validate findings against clinical-grade equipment before acting on alerts.
 
 ## Overview
 
 | Module | File | What It Does | Event IDs | Budget |
 |--------|------|-------------|-----------|--------|
 | Sleep Apnea Detection | `med_sleep_apnea.rs` | Detects apnea episodes when breathing ceases for >10s; tracks AHI score | 100-102 | L (< 2 ms) |
-| Cardiac Arrhythmia | `med_cardiac_arrhythmia.rs` | Detects tachycardia, bradycardia, missed beats, HRV anomalies | 110-113 | S (< 5 ms) |
+| Cardiac Arrhythmia | `med_cardiac_arrhythmia.rs` | Detects tachycardia, bradycardia, missed beats, HRV anomalies (Vital Signs / **バイタル測定（心拍・呼吸）**) | 110-113 | S (< 5 ms) |
 | Respiratory Distress | `med_respiratory_distress.rs` | Detects tachypnea, labored breathing, Cheyne-Stokes, composite distress score | 120-123 | H (< 10 ms) |
-| Gait Analysis | `med_gait_analysis.rs` | Extracts step cadence, asymmetry, shuffling, festination, fall-risk score | 130-134 | H (< 10 ms) |
-| Seizure Detection | `med_seizure_detect.rs` | Detects tonic-clonic seizures with phase discrimination (fall vs tremor) | 140-143 | S (< 5 ms) |
+| Gait Analysis | `med_gait_analysis.rs` | Extracts step cadence, asymmetry, shuffling, festination, fall-risk score (Fall Detect / **転倒検知アラート**) | 130-134 | H (< 10 ms) |
+| Seizure Detection | `med_seizure_detect.rs` | Detects tonic-clonic seizures with phase discrimination (fall vs tremor — Fall Detect / **転倒検知アラート**) | 140-143 | S (< 5 ms) |
 
 All modules:
 - Compile to `no_std` for WASM (ESP32 WASM3 runtime)

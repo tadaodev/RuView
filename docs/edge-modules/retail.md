@@ -7,10 +7,10 @@
 | Module | File | What It Does | Event IDs | Frame Budget |
 |--------|------|--------------|-----------|--------------|
 | Queue Length | `ret_queue_length.rs` | Estimates queue length and wait time using Little's Law | 400-403 | ~0.5 us/frame |
-| Dwell Heatmap | `ret_dwell_heatmap.rs` | Tracks dwell time per spatial zone (3x3 grid) | 410-413 | ~1 us/frame |
+| Dwell Heatmap | `ret_dwell_heatmap.rs` | Tracks dwell time per spatial zone (Empty Room / **空部屋測定（ベースライン校正）** baseline calibration) | 410-413 | ~1 us/frame |
 | Customer Flow | `ret_customer_flow.rs` | Directional foot traffic counting (ingress/egress) | 420-423 | ~1.5 us/frame |
 | Table Turnover | `ret_table_turnover.rs` | Restaurant table lifecycle tracking with turnover rate | 430-433 | ~0.3 us/frame |
-| Shelf Engagement | `ret_shelf_engagement.rs` | Detects and classifies customer shelf interaction | 440-443 | ~1 us/frame |
+| Shelf Engagement | `ret_shelf_engagement.rs` | Detects customer shelf interaction via CSI Variance (**電波変動量（動作強度）**) | 440-443 | ~1 us/frame |
 
 All modules target the ESP32-S3 running WASM3 (ADR-040 Tier 3). They receive pre-processed CSI signals from Tier 2 DSP and emit structured events via `csi_emit_event()`.
 

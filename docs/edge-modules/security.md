@@ -35,7 +35,7 @@ All security modules follow these conventions:
 
 ### Intrusion Detection (`intrusion.rs`)
 
-**What it does**: Monitors a previously-empty space and triggers an alarm when someone enters. Works like a traditional motion alarm -- the environment must settle before the system arms itself.
+**What it does**: Monitors a previously-empty space (Empty Room / **空部屋測定（ベースライン校正）**) and triggers an alarm when someone enters. Works like a traditional motion alarm -- the environment must settle before the system arms itself.
 
 **How it works**: During calibration (200 frames), the detector learns per-subcarrier amplitude mean and variance. After calibration, it waits for the environment to be quiet (100 consecutive frames with low disturbance) before arming. Once armed, it computes a composite disturbance score from phase velocity (sudden phase jumps between frames) and amplitude deviation (amplitude departing from baseline by more than 3 sigma). If the disturbance exceeds 0.8 for 3+ consecutive frames, an alert fires.
 
@@ -91,7 +91,7 @@ Calibrating --> Monitoring --> Armed --> Alert
 
 **How it works**: Subcarriers are split into 4 equal groups, each representing a spatial zone. Per-zone metrics are computed every frame:
 1. **Phase gradient**: Mean absolute phase difference between current and previous frame within the zone's subcarrier range.
-2. **Variance ratio**: Current zone variance divided by calibrated baseline variance.
+2. **Variance ratio**: Current zone CSI Variance (**電波変動量（動作強度）**) divided by calibrated baseline variance.
 
 A breach is flagged when phase gradient exceeds 0.6 rad/subcarrier AND variance ratio exceeds 2.5x baseline. Direction is determined by linear regression slope over an 8-frame energy history buffer -- positive slope = approaching, negative = departing.
 

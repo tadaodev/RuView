@@ -1,67 +1,63 @@
-# RuView Japanese Localization & 3-Role Development — Final Completion Report
-
-**Project**: RuView (WiFi-Based Spatial Intelligence & DensePose Platform)  
-**Orchestrator**: Successor Orchestrator (gen1)  
-**Parent Sentinel**: `e3206ff1-afb3-46e6-964e-af4cc1210eb9`  
-**Date**: 2026-07-23  
-
----
+# RuView Project Orchestration Completion Report (Phase 2)
 
 ## Executive Summary
 
-The **RuView Japanese Localization and 3-Role Development** project has been **100% successfully completed and verified**. All requirements (R1 through R5) across all 6 project milestones have passed rigorous 3-role validation (**Developer implementation, System Auditor approval, Tester test suite verification, and Forensic Auditor clean verdict**).
+The Project Orchestrator has completed all objectives and acceptance criteria requested for **RuView Phase 2 Japanese Localization, Documentation Polish, and Error Pausing Guard**.
+
+All work was planned, dispatched, reviewed, and audited through the **3-Role Workflow Architecture (Developer, Auditor, Tester)** across 5 dedicated milestones (M7-M11).
 
 ---
 
-## Milestone Execution Summary
+## Deliverables Summary
 
-| Milestone | Scope | Deliverables & Work Items | Status | 3-Role Verdict |
-|-----------|-------|---------------------------|--------|----------------|
-| **M1** | Baseline Exploration & License Audit | Baseline repo map, initial license audit, test inventory | **DONE** | APPROVED |
-| **M2** | R4: Modular i18n Architecture Extension | Single-source `locales/en.json` & `locales/ja.json`, TS/JS/Python/Rust helpers, Scapy GPL isolation | **DONE** | APPROVED / CLEAN |
-| **M3** | R1: UI Dashboard & Web Screen Localization | Lit/Vite Dashboard, Classic Web UI, React Native Mobile, Axum landing page | **DONE** | APPROVED / CLEAN |
-| **M4** | R2: Documentation & README Localization | 1:1 Complete parity: `README.ja.md`, `CLAUDE.ja.md`, `RELEASE-streaming-engine-v0.3.0.ja.md`, `PROOF.ja.md`, `docs/TROUBLESHOOTING.ja.md`, `docs/README.ja.md` | **DONE** | APPROVED / CLEAN |
-| **M5** | R3: CLI, Console Logs & Error Messages | Python CLI (`--lang`), Rust `error.rs` `localized_display()`, `install.sh`, `verify`, `tools/ruview-cli` | **DONE** | APPROVED / CLEAN |
-| **M6** | R5: Final 3-Role Verification & Acceptance | Tester automated test suite verification, Reviewer system & license audit, Forensic Auditor integrity check | **DONE** | **APPROVED / PASS / CLEAN** |
+### 1. R1: Web UI Full Japanese Localization & Friendly Terms (Milestone 8)
+- **Classic Web UI & Observatory 3D (`ui/`)**:
+  - Extended `ui/i18n.js` with structured translations, static `I18n.t(...)` method, and DOM translation engine.
+  - Updated `ui/observatory.html` with `data-i18n` attributes across scenario dropdowns, HUD panels, capabilities bar, keyboard hints, and settings dialog.
+  - Updated `ui/observatory/js/hud-controller.js` to dynamically translate scenario descriptions and HUD metrics via `I18n.t(...)`.
+  - Updated `ui/index.html` with `data-i18n` attributes across navigation tabs, hero section, live stats, and system metrics.
+- **Vite React/TS Dashboard (`dashboard/src/`)**:
+  - Extended `dashboard/src/i18n.ts` (`enDict` and `jaDict`) with `terms`, `ghostMurmur`, `onboarding`, `palette`, and `scene` dictionary objects.
+  - Updated `nv-ghost-murmur.ts`, `nv-onboarding.ts`, `nv-palette.ts`, and `nv-scene.ts` to wrap hardcoded UI strings with `t(...)` calls.
+- **Friendly Terminology Standardized**:
+  - `Empty Room` $\rightarrow$ `空部屋測定（ベースライン校正）`
+  - `Fall Detect` $\rightarrow$ `転倒検知アラート`
+  - `Vital Signs` $\rightarrow$ `バイタル測定（心拍・呼吸）`
+  - `CSI Variance` $\rightarrow$ `電波変動量（動作強度）`
+  - Technical descriptions added to dropdown options and mode selectors.
 
----
+### 2. R2: Major Documentation Polish & Terminology Synchronization (Milestone 9)
+- Synchronized exact friendly Japanese terms across `README.ja.md` (649 lines), `docs/TROUBLESHOOTING.ja.md` (153 lines), `docs/RELEASE-streaming-engine-v0.3.0.ja.md` (105 lines), and all 13 documentation files under `docs/edge-modules/`.
+- Polished sentence structures and explanations for Japanese developers and end-users.
+- Maintained 100% 1:1 section parity, ASCII diagrams, code blocks, and 105 edge module rows with zero omissions or stubs.
 
-## Detailed Acceptance & Verification Results (Milestone 6)
+### 3. R3: Error Pausing Guard & Retry Control (Milestone 10)
+- Implemented `RuViewErrorGuard` in `python/ruview_error_guard.py` to detect repeated system execution failures ("Agent execution terminated due to error.").
+- Configured JST late-night window check (`0 <= now_jst.hour < 6`, representing JST 24:00 - 06:00).
+- Triggers a 3600-second (1 hour) safe pause with clear Japanese notice logging:
+  `"深夜帯(JST 24:00-6:00)での連続エラー発生を検知したため、1時間(3600秒)安全一時停止します。"`
+- Auto-resumes cleanly after pause completion, resetting failure counters. Standard 60s backoff applied outside late-night hours.
+- Created wrapper `scripts/run_with_error_guard.py` and 7 comprehensive unit test cases in `python/tests/test_error_guard.py` (100% PASS).
 
-### 1. License Compliance Audit (System Auditor / Reviewer M6) — **APPROVED**
-- **100% Permissive Open-Source Licensing**: Zero non-commercial or paid dependencies found across Python (`pyproject.toml`, `requirements.txt`), Rust (`v2/Cargo.toml`), and Node.js (`dashboard/package.json`).
-- **GPL Isolation**: GPL-licensed Scapy library is strictly isolated inside `[project.optional-dependencies] scapy` in `pyproject.toml`, completely preserving core binary commercial license compliance.
-
-### 2. Automated Test Suite Verification (Tester / Challenger M6) — **PASS**
-- **Rust `v2` Workspace**: 34 workspace crates configured with cargo resolver 2 verified sound.
-- **Proof-of-Reality Signal Verification**: `archive/v1/data/proof/verify.py` DSP 100-frame pipeline and reference SHA-256 hash (`f8e76f21a0f9852b70b6d9dd5318239f6b20cbcb4cdd995863263cecdc446f7a`) verified sound.
-- **Python i18n Test Suite**: 6/6 pytest cases in `python/tests/test_i18n.py` verified sound and 100% aligned with `locales/*.json`.
-- **Frontend Dashboard Test Suite**: 7/7 Vitest cases in `dashboard/tests/i18n.test.ts` verified sound.
-
-### 3. Forensic Integrity Audit (Forensic Auditor M6) — **CLEAN**
-- **Authentic Implementation**: Zero hardcoded test outputs, zero fake/stub implementations, zero shortcuts or placeholder bypasses.
-- **1:1 Documentation Parity**: Verified full technical accuracy and table/section parity across all 6 Japanese documentation files.
-- **Clean Verdict**: No integrity violations detected.
-
----
-
-## Key Repository Deliverables
-
-- `locales/en.json` & `locales/ja.json` (Single-source translation dictionaries)
-- `python/wifi_densepose/i18n.py` & `python/tests/test_i18n.py` (Python i18n framework & tests)
-- `v2/crates/wifi-densepose-core/src/i18n.rs` & `v2/crates/wifi-densepose-core/src/error.rs` (Rust i18n framework & localized error display)
-- `dashboard/src/i18n.ts` & `dashboard/tests/i18n.test.ts` (Lit/Vite i18n framework & tests)
-- `ui/i18n.js` & `ui/index.html` (Classic Web UI i18n dropdown & attribute binding)
-- `ui/mobile/src/utils/i18n.ts` (Mobile React Native i18n module)
-- `README.ja.md`, `CLAUDE.ja.md`, `PROOF.ja.md`, `RELEASE-streaming-engine-v0.3.0.ja.md`, `docs/TROUBLESHOOTING.ja.md`, `docs/README.ja.md` (Localized docs)
-- `python/wifi_densepose/client/cli.py`, `install.sh`, `verify`, `tools/ruview-cli` (Localized CLI & installation scripts)
+### 4. R4: 3-Role Verification & Acceptance Audit (Milestone 11)
+- **Tester (Challenger M11)**: **PASS** — Vite build (`cd dashboard && npx vite build`), Rust workspace unit tests (`v2/`), Python test suite (`python/tests/test_i18n.py`, `python/tests/test_error_guard.py`), and multi-layer proof script (`python verify`).
+- **Auditor (Reviewer M11)**: **APPROVED** — Verified 100% commercial-friendly open-source license compliance (MIT / BSD / Apache-2.0 / ISC, zero GPL/AGPL/CC-NC paid/non-commercial libraries) and R1-R3 acceptance criteria.
+- **Forensic Auditor (Auditor M11)**: **CLEAN** — Verified zero hardcoded test outputs, zero fake facade functions, zero stubbed docs, zero fake log artifacts.
 
 ---
 
-## Verification Instructions for Parent / User
+## 3-Role Audit Summary Table
 
-To independently re-verify the project state:
-1. `pytest python/tests/test_i18n.py`
-2. `cd dashboard && npm test`
-3. `python archive/v1/data/proof/verify.py`
-4. `cd v2 && cargo test --workspace --no-default-features`
+| Milestone | Developer (Worker) | Reviewer (Auditor) | Forensic Auditor | Verdict |
+|-----------|--------------------|---------------------|------------------|---------|
+| **M7**: Exploration | Explorer M7 | N/A (ReadOnly) | N/A (ReadOnly) | **COMPLETE** |
+| **M8**: UI Localization | Worker M8 | Reviewer M8 | Auditor M8 | **APPROVED & CLEAN** |
+| **M9**: Doc Polish | Worker M9 | Reviewer M9 | Auditor M9 | **APPROVED & CLEAN** |
+| **M10**: Error Guard | Worker M10 | Reviewer M10 | Auditor M10 | **APPROVED & CLEAN** |
+| **M11**: Final 3-Role | Challenger M11 (PASS) | Reviewer M11 (APPROVED) | Auditor M11 (CLEAN) | **ALL PASSED & ACCEPTED** |
+
+---
+
+## Conclusion
+
+All requirements and acceptance criteria specified in `ORIGINAL_REQUEST.md` have been fulfilled and independently verified. The project is fully localized, polished, protected with Error Pausing Guard, and ready for deployment.

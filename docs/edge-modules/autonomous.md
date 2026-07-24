@@ -7,7 +7,7 @@
 | Module | File | What It Does | Event IDs | Budget |
 |--------|------|--------------|-----------|--------|
 | Quantum Coherence | `qnt_quantum_coherence.rs` | Maps CSI phases onto a Bloch sphere to detect sudden environmental changes | 850-852 | H (<10 ms) |
-| Interference Search | `qnt_interference_search.rs` | Grover-inspired multi-hypothesis room state classifier | 855-857 | H (<10 ms) |
+| Interference Search | `qnt_interference_search.rs` | Grover-inspired multi-hypothesis room state classifier (Empty Room / **空部屋測定（ベースライン校正）** classification) | 855-857 | H (<10 ms) |
 
 ---
 

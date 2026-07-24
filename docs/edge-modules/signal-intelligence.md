@@ -11,7 +11,7 @@
 | Temporal Compress | `sig_temporal_compress.rs` | Stores CSI history in 3-tier compressed circular buffer | 705-707 | S (<5ms) |
 | Sparse Recovery | `sig_sparse_recovery.rs` | Recovers dropped subcarriers using ISTA sparse optimization | 715-717 | H (<10ms) |
 | Min-Cut Person Match | `sig_mincut_person_match.rs` | Maintains stable person IDs across frames using bipartite matching | 720-722 | H (<10ms) |
-| Optimal Transport | `sig_optimal_transport.rs` | Detects subtle motion via sliced Wasserstein distance | 725-727 | S (<5ms) |
+| Optimal Transport | `sig_optimal_transport.rs` | Detects subtle motion via sliced Wasserstein distance (CSI Variance / **電波変動量（動作強度）**) | 725-727 | S (<5ms) |
 
 ## How Signal Processing Fits In
 

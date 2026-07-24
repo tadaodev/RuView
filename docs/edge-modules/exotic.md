@@ -15,14 +15,14 @@
 
 | Module | File | What It Does | Event IDs | Maturity |
 |--------|------|-------------|-----------|----------|
-| Sleep Stage Classification | `exo_dream_stage.rs` | Classifies sleep phases from breathing + micro-movements | 600-603 | Experimental |
+| Sleep Stage Classification | `exo_dream_stage.rs` | Classifies sleep phases from breathing + micro-movements (Vital Signs / **バイタル測定（心拍・呼吸）**) | 600-603 | Experimental |
 | Emotion Detection | `exo_emotion_detect.rs` | Estimates arousal/stress from physiological proxies | 610-613 | Research |
 | Sign Language Recognition | `exo_gesture_language.rs` | DTW-based letter recognition from hand/arm CSI patterns | 620-623 | Research |
 | Music Conductor Tracking | `exo_music_conductor.rs` | Extracts tempo, beat, dynamics from conducting motions | 630-634 | Research |
 | Plant Growth Detection | `exo_plant_growth.rs` | Detects plant growth drift and circadian leaf movement | 640-643 | Research |
-| Ghost Hunter (Anomaly) | `exo_ghost_hunter.rs` | Classifies unexplained perturbations in empty rooms | 650-653 | Experimental |
+| Ghost Hunter (Anomaly) | `exo_ghost_hunter.rs` | Classifies unexplained perturbations in empty rooms (Empty Room / **空部屋測定（ベースライン校正）**) | 650-653 | Experimental |
 | Rain Detection | `exo_rain_detect.rs` | Detects rain from broadband structural vibrations | 660-662 | Experimental |
-| Breathing Synchronization | `exo_breathing_sync.rs` | Detects phase-locked breathing between multiple people | 670-673 | Research |
+| Breathing Synchronization | `exo_breathing_sync.rs` | Detects phase-locked breathing between multiple people (Vital Signs / **バイタル測定（心拍・呼吸）**) | 670-673 | Research |
 | Time Crystal Detection | `exo_time_crystal.rs` | Detects period-doubling and temporal coordination | 680-682 | Research |
 | Hyperbolic Space Embedding | `exo_hyperbolic_space.rs` | Poincare ball location classification with hierarchy | 685-687 | Research |
 

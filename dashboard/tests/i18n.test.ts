@@ -49,4 +49,12 @@ describe('Dashboard i18n Module', () => {
     setLocale('en');
     expect(notifiedLocale).toBe('ja'); // should not update after unsubscribe
   });
+
+  it('translates friendly terms in Japanese', () => {
+    setLocale('ja');
+    expect(t('terms.emptyRoom')).toBe('空部屋測定（ベースライン校正）');
+    expect(t('terms.fallDetect')).toBe('転倒検知アラート');
+    expect(t('terms.vitalSigns')).toBe('バイタル測定（心拍・呼吸）');
+    expect(t('terms.csiVariance')).toBe('電波変動量（動作強度）');
+  });
 });

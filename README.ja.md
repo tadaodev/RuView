@@ -31,9 +31,9 @@
 
 **センシング機能一覧：**
 - **在室・存在検知（Presence and occupancy）** — 壁越しでの人物検知、人数カウント、出入り追跡
-- **バイタルサイン（Vital signs）** — 睡眠中や着席中の非接触型呼吸数・心拍数計測
-- **アクティビティ認識（Activity recognition）** — 時系列CSIパターンからの歩行、着席、ジェスチャー、転倒検知
-- **環境マッピング（Environment mapping）** — RFフィンガープリンティングによる部屋特定、家具移動の検知、新物体の検出
+- **バイタル測定（心拍・呼吸）（Vital Signs）** — 睡眠中や着席中の非接触型呼吸数・心拍数計測
+- **アクティビティ認識（Activity recognition）** — 時系列CSIパターンからの歩行、着席、ジェスチャー、転倒検知アラート
+- **環境マッピング（Environment mapping）** — **空部屋測定（ベースライン校正）**およびRFフィンガープリンティングによる部屋特定、家具移動の検知、新物体の検出
 - **睡眠の質分析（Sleep quality）** — 睡眠ステージ分類および無呼吸スクリーニングを伴う夜間モニタリング
 
 [RuVector](https://github.com/ruvnet/ruvector/) および [Cognitum Seed](https://cognitum.one) を基盤に構築されたRuViewは、すべてエッジハードウェア上で動作します（ノード単価最低 $9 のESP32メッシュと、永続メモリ・暗号証明・AI統合を提供する Cognitum Seed の組み合わせ）。クラウドやカメラ、インターネット接続は一切不要です。
@@ -50,7 +50,7 @@ RuViewは一般的なWiFiを非接触センサーに変えます。$9のESP32基
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests: 1463](https://img.shields.io/badge/tests-1463%20passed-brightgreen.svg)](https://github.com/ruvnet/RuView)
 [![Docker: multi-arch](https://img.shields.io/badge/docker-amd64%20%2B%20arm64-blue.svg)](https://hub.docker.com/r/ruvnet/wifi-densepose)
-[![Vital Signs](https://img.shields.io/badge/vital%20signs-breathing%20%2B%20heartbeat-red.svg)](#バイタルサイン検知)
+[![Vital Signs](https://img.shields.io/badge/vital%20signs-breathing%20%2B%20heartbeat-red.svg)](#バイタル測定（心拍・呼吸）検知)
 [![ESP32 Ready](https://img.shields.io/badge/ESP32--S3-CSI%20streaming-purple.svg)](#esp32-s3-ハードウェアパイプライン)
 [![crates.io](https://img.shields.io/crates/v/wifi-densepose-ruvector.svg)](https://crates.io/crates/wifi-densepose-ruvector)
 [![Downloads](https://img.shields.io/badge/downloads-10M%2B-brightgreen.svg)](#-エッジモジュールカタログ)
@@ -59,11 +59,11 @@ RuViewは一般的なWiFiを非接触センサーに変えます。$9のESP32基
 > |------|-----|---------------|
 > | 🫁 **呼吸数** | 移相展開、円分散、ゼロ交差BPMへのバンドパスフィルタ (0.1–0.5 Hz) ([#593](https://github.com/ruvnet/RuView/issues/593)) | 6–30 BPM、リアルタイム |
 > | 💓 **心拍数** | バンドパスフィルタ (0.8–2.0 Hz)、ゼロ交差BPM | 40–120 BPM、リアルタイム |
-> | 👤 **存在検知** | Hugging Face上の学習済みヘッド ([`ruvnet/wifi-densepose-pretrained`](https://huggingface.co/ruvnet/wifi-densepose-pretrained); v2エンコーダー = 82.3% 時系列トリプレット精度) + モデル不要の位相分散フォールバック | < 1 ms、約30秒の環境キャリブレーション |
+> | 👤 **存在検知** | Hugging Face上の学習済みヘッド ([`ruvnet/wifi-densepose-pretrained`](https://huggingface.co/ruvnet/wifi-densepose-pretrained); v2エンコーダー = 82.3% 時系列トリプレット精度) + モデル不要の位相分散フォールバック（**空部屋測定（ベースライン校正）**） | < 1 ms、約30秒の環境キャリブレーション |
 > | 🧬 **CSIエンベディング** | 128次元対照学習エンコーダー（Hugging Face配信、4-bit量子化版は8 KB） | M4 Pro上で **164,183 emb/s** |
 > | 🦴 **17キーポイント姿勢推定** | `cog-pose-estimation` Cog v0.0.1 — GCS上の署名済み aarch64 + x86_64 バイナリ、Candle経由で `pose_v1.safetensors` をロード。RTX 5080で 2.1秒で追加学習可能 ([ADR-101](docs/adr/ADR-101-pose-estimation-cog.md), [ベンチマーク](docs/benchmarks/pose-estimation-cog.md))。**MM-FiでのSOTA:** [`ruvnet/wifi-densepose-mmfi-pose`](https://huggingface.co/ruvnet/wifi-densepose-mmfi-pose) は **82.69% torso-PCK@20** (アンサンブル時 83.59%) を達成し、MultiFormer (72.25%) や CSI2Pose (68.41%) を凌駕 ([AetherArena](https://huggingface.co/spaces/ruvnet/aether-arena)) | Pi 5上で 8.4 ms コールドスタート |
-> | 🚶 **動作 / アクティビティ** | 動作帯域パワー + 位相加速度 | リアルタイム |
-> | 🤸 **転倒検知** | 位相加速度閾値 + 3フレームデバウンス + 5秒クールダウン ([#263](https://github.com/ruvnet/RuView/issues/263)) | < 200 ms |
+> | 🚶 **動作 / アクティビティ** | **電波変動量（動作強度）**（動作帯域パワー） + 位相加速度 | リアルタイム |
+> | 🤸 **転倒検知アラート** | 位相加速度閾値 + 3フレームデバウンス + 5秒クールダウン ([#263](https://github.com/ruvnet/RuView/issues/263)) | < 200 ms |
 > | 🧮 **複数人カウント** | 適応型P95正規化 + 実行時チューニング可能な重複排除ファクター (`/api/v1/config/dedup-factor`, [#491](https://github.com/ruvnet/RuView/pull/491))。Cogsとして利用可能な6つの専門学習カウンタ: `occupancy-zones`, `elevator-count`, `queue-length`, `customer-flow`, `clean-room`, `person-matching` | リアルタイム、自動キャリブレーション |
 > | 🌍 **ワールドモデル予測** | OccWorld TransVQVAE — 15フレーム先占有予測、209 ms推論、RTX 5080で 3.4 GB VRAM (`occworld_retrain.py` でファインチューン可能, [ADR-147](docs/adr/ADR-147-nvidia-cosmos-world-foundation-model-integration.md)) | 15フレーム × 200×200×16 ボクセル |
 > | 🧱 **壁越しセンシング** | フレネルゾーン幾何学 + マルチパスモデリング | 最大約5m（信号に依存） |
@@ -120,13 +120,13 @@ pip install "ruview[client]"              # または: pip install "wifi-densepo
 [![PyPI ruview](https://img.shields.io/pypi/v/ruview?label=ruview)](https://pypi.org/project/ruview/) [![PyPI wifi-densepose](https://img.shields.io/pypi/v/wifi-densepose?label=wifi-densepose)](https://pypi.org/project/wifi-densepose/)
 
 > [!NOTE]
-> **CSI対応ハードウェア推奨。** 存在検知、バイタルサイン、壁越しセンシングなどの高度な機能には、ESP32-S3（$9）または研究用NICからのチャネル状態情報（CSI）が必要です。Dockerイメージは評価用のシミュレーションデータで動作します。一般的なWiFiノートPCはRSSIのみの簡易検知となります。
+> **CSI対応ハードウェア推奨。** 存在検知、**バイタル測定（心拍・呼吸）**、壁越しセンシングなどの高度な機能には、ESP32-S3（$9）または研究用NICからのチャネル状態情報（CSI）が必要です。Dockerイメージは評価用のシミュレーションデータで動作します。一般的なWiFiノートPCはRSSIのみの簡易検知となります。
 
 > **ハードウェア選択肢:**
 >
 > | 選択肢 | ハードウェア | コスト | フルCSI | 機能 |
 > |--------|----------|------|----------|-------------|
-> | **ESP32 + Cognitum Seed** (推奨) | ESP32-S3 + [Cognitum Seed](https://cognitum.one) | 約 $140 | 対応 | 存在・動作・呼吸・心拍・転倒検知、複数人カウント、17キーポイント姿勢 (署名済み Cog バイナリ)、105-Cogカタログ、永続ベクトルストア、kNN検索、ウィトネスチェーン、MCPプロキシ |
+> | **ESP32 + Cognitum Seed** (推奨) | ESP32-S3 + [Cognitum Seed](https://cognitum.one) | 約 $140 | 対応 | 存在・**電波変動量（動作強度）**・**バイタル測定（心拍・呼吸）**・**転倒検知アラート**、複数人カウント、17キーポイント姿勢 (署名済み Cog バイナリ)、105-Cogカタログ、永続ベクトルストア、kNN検索、ウィトネスチェーン、MCPプロキシ |
 > | **ESP32 メッシュ** | ESP32-S3 × 3〜6台 + WiFiルーター | 約 $54 | 対応 | 永続メモリ機能を除く上記と同等の機能 |
 > | **ESP32-C6 研究ノード** ([ADR-110](docs/adr/ADR-110-esp32-c6-firmware-extension.md), [証明](docs/WITNESS-LOG-110.md), [ファームウェア v0.7.0](https://github.com/ruvnet/RuView/releases/tag/v0.7.0-esp32)) | ESP32-C6-DevKit ($6–10) | 約 $10 | 対応 (WiFi 6対応) | S3と同じCSIパイプラインをデュアルターゲットファームウェアで駆動。ESP-NOWボード間メッシュ実測: 99.56% 一致 / 104 µs スムージングオフセット標準偏差 / 3.95倍 EMA抑制。32バイト UDP 同期パケット。HE-LTF PPDU タグ付け用電線フォーマット対応。LP-core 動体ゲートおよび Wi-Fi 6 soft-AP（オプトイン）。 |
 > | **研究用 NIC** | Intel 5300 / Atheros AR9580 | 約 $50-100 | 対応 | 3x3 MIMOによるフルCSI |
@@ -152,7 +152,7 @@ pip install "ruview[client]"              # または: pip install "wifi-densepo
   &nbsp;|&nbsp;
   <a href="https://ruvnet.github.io/RuView/three.js/"><strong>▶ three.js デモギャラリー (5種類)</strong></a>
 
-> サーバーの起動は可視化・集約用としてオプションです — ESP32単体で存在検知、バイタルサイン、転倒アラートを独立して実行可能です。
+> サーバーの起動は可視化・集約用としてオプションです — ESP32単体で存在検知、**バイタル測定（心拍・呼吸）**、**転倒検知アラート**を独立して実行可能です。
 >
 > **ライブ ESP32 パイプライン**: ESP32-S3 ノードを接続 → センシングサーバーを実行 → [姿勢統合デモ](https://ruvnet.github.io/RuView/pose-fusion.html) を開いてリアルタイムデュアルモード姿勢推定（Webcam + WiFi CSI）を表示。詳細は [ADR-059](docs/adr/ADR-059-live-esp32-csi-pipeline.md)。
 >
@@ -221,14 +221,14 @@ python archive/v1/data/proof/verify.py
 | `cardiac-arrhythmia` | 不規則な心拍および異常心律動の検出 | 8 KB | 難しい |
 | `cough-detect` | 30秒クラスタ集約を伴う音響過渡+スペクトル咳検知器。呼吸器疾患の早期警戒。 | 451 KB | 簡単 |
 | `dream-stage` | 睡眠ステージ（レム、ノンレム浅い/深い）の追跡 | 14 KB | 難しい |
-| `fall-detect` | 2段階衝撃+静止転倒検知（ESP32動作/マイク）。CSI姿勢補強機能付き。 | 402 KB | 簡単 |
-| `gait-analysis` | 歩行異常の検知と転倒リスクのスコアリング | 12 KB | 難しい |
-| `health-monitor` | 非接触での心拍数、呼吸数、睡眠、転倒アラート | 30 KB | 中程度 |
+| `fall-detect` | **転倒検知アラート**（2段階衝撃+静止検知、CSI姿勢補強付き） | 402 KB | 簡単 |
+| `gait-analysis` | 歩行異常の検知と**転倒検知アラート**用リスクのスコアリング | 12 KB | 難しい |
+| `health-monitor` | 非接触での**バイタル測定（心拍・呼吸）**、睡眠、**転倒検知アラート** | 30 KB | 中程度 |
 | `respiratory-distress` | 呼吸が苦しそうな状態や危険な頻呼吸を検出 | 10 KB | 難しい |
 | `seizure-detect` | 癲癇発作を認識し即座にアラート送信 | 10 KB | 難しい |
 | `sleep-apnea` | 睡眠中に呼吸が停止した状態を検出 | 4 KB | 簡単 |
 | `snore-monitor` | 睡眠の質/無呼吸リスク傾向を捉える周期的な低周波エネルギー追跡。 | 451 KB | 簡単 |
-| `vital-trend` | 呼吸数および心拍数の数週間にわたる傾向追跡 | 6 KB | 中程度 |
+| `vital-trend` | **バイタル測定（心拍・呼吸）**の数週間にわたる傾向追跡 | 6 KB | 中程度 |
 
 ### 🔒 セキュリティ (Security) &mdash; <sub>14 モジュール</sub>
 
@@ -286,7 +286,7 @@ python archive/v1/data/proof/verify.py
 | `forklift-proximity` | フォークリフトが作業員に接近した際のアラート | 10 KB | 難しい |
 | `livestock-monitor` | 家畜の異常、逃亡、疾病の監視 | 6 KB | 中程度 |
 | `ppe-compliance` | 制限区域への侵入時に保護具着用がない場合のアラート層。 | 387 KB | 簡単 |
-| `slip-fall-zone` | 転倒前リスク検知器。動作分散低下+水はね音等で判定。 | 451 KB | 簡単 |
+| `slip-fall-zone` | **転倒検知アラート**・前駆リスク検知器。**電波変動量（動作強度）**低下+水はね音等で判定。 | 451 KB | 簡単 |
 | `structural-vibration` | 建物や機械の危険な構造振動を検出 | 8 KB | 難しい |
 
 ### 🔬 研究 (Research) &mdash; <sub>12 モジュール</sub>
@@ -426,8 +426,8 @@ WiFiセンシングはWiFiが存在するあらゆる場所で機能します。
 
 | ユースケース | 機能概要 | ハードウェア | 主要指標 | エッジモジュール |
 |----------|-------------|----------|------------|-------------|
-| **高齢者介護 / 見守り** | 転倒検知、夜間行動モニタリング、睡眠中呼吸数 — ウェアラブル装着不要 | 部屋ごとに ESP32-S3 1台 ($8) | 転倒アラート <2秒 | [Sleep Apnea](docs/edge-modules/medical.md), [Gait Analysis](docs/edge-modules/medical.md) |
-| **病院患者モニタリング** | 有線センサーなしで病室の呼吸数・心拍数を継続計測。アノマリー検知で看護師へ通知 | 病棟ごとに AP 1-2台 | 呼吸数: 6-30 BPM | [Respiratory Distress](docs/edge-modules/medical.md), [Cardiac Arrhythmia](docs/edge-modules/medical.md) |
+| **高齢者介護 / 見守り** | **転倒検知アラート**、夜間行動モニタリング、睡眠中**バイタル測定（心拍・呼吸）** — ウェアラブル装着不要 | 部屋ごとに ESP32-S3 1台 ($8) | 転倒アラート <2秒 | [Sleep Apnea](docs/edge-modules/medical.md), [Gait Analysis](docs/edge-modules/medical.md) |
+| **病院患者モニタリング** | 有線センサーなしで病室の**バイタル測定（心拍・呼吸）**を継続計測。アノマリー検知で看護師へ通知 | 病棟ごとに AP 1-2台 | 呼吸数: 6-30 BPM | [Respiratory Distress](docs/edge-modules/medical.md), [Cardiac Arrhythmia](docs/edge-modules/medical.md) |
 | **救急外来トリアージ** | 自動在室人数カウント+待ち時間推定。待合室での患者体調急変検知 | 既存の病院WiFi | 人数精度 >95% | [Queue Length](docs/edge-modules/retail.md), [Panic Motion](docs/edge-modules/security.md) |
 | **店舗人流・滞留分析** | リアルタイム歩行者数、ゾーン別滞留時間、行列長 — カメラ不要、GDPR対応 | 既存店舗WiFi + ESP32 1台 | 滞留分解能 ~1m | [Customer Flow](docs/edge-modules/retail.md), [Dwell Heatmap](docs/edge-modules/retail.md) |
 | **オフィス空間利用率** | デスク/会議室の実際の利用状況、予約キャンセル自動検知、空調最適化 | 既存エンタープライズWiFi | 存在応答 <1秒 | [Meeting Room](docs/edge-modules/building.md), [HVAC Presence](docs/edge-modules/building.md) |
@@ -465,7 +465,7 @@ WiFiセンシングは、LIDARやカメラが機能しない粉塵・煙・霧�
 | **倉庫AMR自律走行** | 死角や棚の陰にいる人物を事前に感知 — LIDARの遮蔽を克服 | 通路沿いの ESP32 メッシュ | 棚越し検知 | [Forklift Proximity](docs/edge-modules/industrial.md), [Loitering](docs/edge-modules/security.md) |
 | **ヒューマノイド空間認識** | 周囲の人体姿勢センシング — ジェスチャーや接近方向をカメラ常時オンなしで認識 | 車載 ESP32-S3 モジュール | 17キーポイント姿勢 | [Gesture Language](docs/edge-modules/exotic.md), [Emotion Detection](docs/edge-modules/exotic.md) |
 | **製造ラインモニタリング** | 各ステーションの作業員存在確認、人間工学的な姿勢アラート | ゾーンごとに産業用AP | 姿勢 + 呼吸 | [Confined Space](docs/edge-modules/industrial.md), [Gait Analysis](docs/edge-modules/medical.md) |
-| **建設現場の安全管理** | 重機周辺の立入禁止エリア監視、足場からの転倒検知 | 堅牢化 ESP32 メッシュ | アラート <2秒、粉塵透過 | [Panic Motion](docs/edge-modules/security.md), [Structural Vibration](docs/edge-modules/industrial.md) |
+| **建設現場の安全管理** | 重機周辺の立入禁止エリア監視、足場からの**転倒検知アラート** | 堅牢化 ESP32 メッシュ | アラート <2秒、粉塵透過 | [Panic Motion](docs/edge-modules/security.md), [Structural Vibration](docs/edge-modules/industrial.md) |
 | **農業ロボティクス** | 視界不良な農場環境での自律収穫機周辺の作業員検知 | 全天候型 ESP32 ノード | 開けた圃場で範囲 ~10m | [Forklift Proximity](docs/edge-modules/industrial.md), [Rain Detection](docs/edge-modules/exotic.md) |
 | **ドローン着陸エリア** | 着陸地点に人間がいないかの確認 — 雨・粉塵・暗闇でも動作 | 地上 ESP32 ノード | 存在精度 >95% | [Perimeter Breach](docs/edge-modules/security.md), [Tailgating](docs/edge-modules/security.md) |
 | **クリーンルーム監視** | カメラ不適切な環境での作業員追跡およびクリーンスーツ着用姿勢適合 | 既存クリーンルームWiFi | 発塵なし | [Clean Room](docs/edge-modules/industrial.md), [Livestock Monitor](docs/edge-modules/industrial.md) |
@@ -481,8 +481,8 @@ WiFiセンシングは、LIDARやカメラが機能しない粉塵・煙・霧�
 |----------|-------------|----------|------------|-------------|
 | **災害探索救助 (WiFi-Mat)** | 瓦礫下の生存者の呼吸サイン検知、トリアージ色分類、3D位置特定 | ポータブル ESP32 メッシュ | 厚さ 30cm コンクリート透過 | [Respiratory Distress](docs/edge-modules/medical.md), [Seizure Detection](docs/edge-modules/medical.md) |
 | **消防活動・消火作業** | 煙や壁の向こうにいる逃げ遅れ者を侵入前に発見 | 車載ポータブルメッシュ | 視界ゼロで動作 | [Sleep Apnea](docs/edge-modules/medical.md), [Panic Motion](docs/edge-modules/security.md) |
-| **刑務所 & 警備施設** | 独居房の在室確認、異常バイタルの検知 — 死角なしの全周監視 | 専用 AP インフラ | 24/7 バイタル監視 | [Cardiac Arrhythmia](docs/edge-modules/medical.md), [Loitering](docs/edge-modules/security.md) |
-| **軍事 / タクティカル** | 壁越しの要員検知、部屋クリアランス確認、遠距離での人質バイタル確認 | 指向性 WiFi + カスタムFW | 壁越し範囲 5m | [Perimeter Breach](docs/edge-modules/security.md), [Weapon Detection](docs/edge-modules/security.md) |
+| **刑務所 & 警備施設** | 独居房の在室確認、異常**バイタル測定（心拍・呼吸）**の検知 — 死角なしの全周監視 | 専用 AP インフラ | 24/7 バイタル監視 | [Cardiac Arrhythmia](docs/edge-modules/medical.md), [Loitering](docs/edge-modules/security.md) |
+| **軍事 / タクティカル** | 壁越しの要員検知、部屋クリアランス確認、遠距離での人質**バイタル測定（心拍・呼吸）**確認 | 指向性 WiFi + カスタムFW | 壁越し範囲 5m | [Perimeter Breach](docs/edge-modules/security.md), [Weapon Detection](docs/edge-modules/security.md) |
 | **国境・外周警備** | トンネル内、フェンス裏、車両内の人体存在検知 — 受動センシング | 隠蔽 ESP32 メッシュ | パッシブ / 隠密動作 | [Perimeter Breach](docs/edge-modules/security.md), [Tailgating](docs/edge-modules/security.md) |
 | **鉱山・地下作業** | GPS/カメラが効かない坑内での作業員位置把握・崩落後の呼吸検知 | 堅牢化 ESP32 メッシュ | 岩盤・土砂透過 | [Confined Space](docs/edge-modules/industrial.md), [Respiratory Distress](docs/edge-modules/medical.md) |
 | **海洋 & 船舶** | 鋼鉄隔壁越しの船員追跡、落水者検知 | 船内 WiFi + ESP32 | 1-2枚の隔壁透過 | [Structural Vibration](docs/edge-modules/industrial.md), [Panic Motion](docs/edge-modules/security.md) |
@@ -510,7 +510,7 @@ WiFiセンシングは、LIDARやカメラが機能しない粉塵・煙・霧�
 |------|-------------|----------------|
 | **自己教師あり学習** | ラベルなしのWiFi信号から類似性と違いを自動学習 | センサーを設置して10分待つだけでどこにでも展開可能 |
 | **部屋の自動特定** | 部屋ごとの固有のWiFiフィンガープリントを認識 | GPSやビーコンなしでどの部屋にいるかを判別 |
-| **アノマリー検知** | 予期せぬ人物やイベントによる未知のフィンガープリントを検出 | 侵入や転倒を自動的に検知 |
+| **アノマリー検知** | 予期せぬ人物やイベントによる未知のフィンガープリントを検出 | 侵入や**転倒検知アラート**を自動的に発報 |
 | **人物再識別** *(研究段階)* | チャネル類似性マッチング（Soul Signature §3.6） | 実験的研究機能 — 決定的なAETHERチャネルを要求 |
 | **環境適応** | MicroLoRA アダプター（部屋あたり1,792パラメータ）でファインチューン | 93%少ないデータで新しい部屋に適応 |
 | **記憶の保持** | EWC++ 正則化により事前学習済みの知識の忘却を防止 | 新しいタスクを追加しても過去の知識を維持 |
@@ -554,7 +554,7 @@ cargo run -p wifi-densepose-sensing-server -- --model model.rvf --build-index en
 |-------|---------------|----------------|
 | `env_fingerprint` | 部屋の平均フィンガープリント | 「ここは台所か、寝室か？」 |
 | `activity_pattern` | 動作境界 | 「調理中か、就寝中か、運動中か？」 |
-| `temporal_baseline` | 通常状態のベースライン | 「この部屋で何か異変が起きた」 |
+| `temporal_baseline` | **空部屋測定（ベースライン校正）** | 「この部屋で何か異変が起きた」 |
 | `person_track` | 個人動線サイン | 「人物Aがリビングに入った」 |
 
 **モデルサイズ**

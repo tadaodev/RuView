@@ -8,6 +8,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { kvGet, kvSet } from '../store/persistence';
+import { t } from '../i18n';
 
 interface TourStep {
   /** Optional icon shown at the top of the step. */
@@ -385,10 +386,10 @@ export class NvOnboarding extends LitElement {
             <div class="progress-label">${this.step + 1} / ${STEPS.length}</div>
           </div>
           ${this.step > 0
-            ? html`<button class="ghost" @click=${() => this.prev()}>← Back</button>`
-            : html`<button class="ghost" @click=${() => this.dismiss()}>Skip</button>`}
+            ? html`<button class="ghost" @click=${() => this.prev()}>${t('onboarding.back', '← Back')}</button>`
+            : html`<button class="ghost" @click=${() => this.dismiss()}>${t('onboarding.skip', 'Skip')}</button>`}
           <button class="primary" @click=${() => this.next()}>
-            ${s.cta?.label ?? (isLast ? 'Done' : 'Next →')}
+            ${s.cta?.label ?? (isLast ? t('onboarding.done', 'Done') : t('onboarding.next', 'Next →'))}
           </button>
         </div>
       </div>

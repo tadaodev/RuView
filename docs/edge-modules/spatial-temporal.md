@@ -7,7 +7,7 @@
 | Module | File | What It Does | Event IDs | Budget |
 |--------|------|--------------|-----------|--------|
 | PageRank Influence | `spt_pagerank_influence.rs` | Finds the dominant person in multi-person scenes using cross-correlation PageRank | 760-762 | S (<5 ms) |
-| Micro-HNSW | `spt_micro_hnsw.rs` | On-device approximate nearest-neighbor search for CSI fingerprint matching | 765-768 | S (<5 ms) |
+| Micro-HNSW | `spt_micro_hnsw.rs` | On-device approximate nearest-neighbor search for CSI fingerprint matching (Empty Room / **空部屋測定（ベースライン校正）** baseline matching) | 765-768 | S (<5 ms) |
 | Spiking Tracker | `spt_spiking_tracker.rs` | Bio-inspired person tracking using LIF neurons with STDP learning | 770-773 | M (<8 ms) |
 
 ---

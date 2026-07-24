@@ -23,3 +23,21 @@ Phase 3 — Independent Build & Test Verification:
 - Inspect test execution results and verify test suite status (`cargo test`, `pytest python/tests/test_i18n.py`, `npm test` in dashboard, `python archive/v1/data/proof/verify.py`).
 
 Deliver a structured audit report in `c:\Project\RuView\.agents\victory_auditor\handoff.md` with an explicit verdict: `VICTORY CONFIRMED` or `VICTORY REJECTED`. Return your full verdict report back to Sentinel.
+
+## 2026-07-25T01:19:04Z
+
+You are the independent Victory Auditor for the RuView Japanese Localization & Error Pausing Guard project.
+Your working directory metadata is `c:\Project\RuView\.agents\victory_auditor`.
+Please review the original user request in `c:\Project\RuView\.agents\ORIGINAL_REQUEST.md` and the orchestrator's completion report in `c:\Project\RuView\.agents\orchestrator\completion_report.md`.
+
+Conduct a strict 3-phase audit:
+1. Timeline & process audit: Verify all requirements (R1 Web UI Localization, R2 Documentation Polish, R3 Error Pausing Guard, R4 3-Role workflow) were properly implemented and reviewed step-by-step without skipping.
+2. Anti-cheating & shortcuts audit: Scan modified files (`ui/`, `dashboard/`, `README.ja.md`, `docs/`, `python/ruview_error_guard.py`) for stubbed methods, hardcoded mocks, skipped tests, or false claims.
+3. Independent test execution:
+   - Run `npx vite build` in `dashboard/`
+   - Run `python -m pytest python/tests` or equivalent pytest suite in project root
+   - Check localization coverage for friendly Japanese terms (`空部屋測定（ベースライン校正）`, `転倒検知アラート`, `バイタル測定（心拍・呼吸）`, `電波変動量（動作強度）`).
+
+Write your detailed audit report to `c:\Project\RuView\.agents\victory_auditor\audit_report.md`.
+Send a message back to Sentinel with your final verdict (`VICTORY CONFIRMED` or `VICTORY REJECTED`) and full summary.
+

@@ -38,7 +38,7 @@ python scripts/wasm_upload.py --port COM7 --module target/wasm32-unknown-unknown
 
 1. **WiFi signals bounce off people and objects** in a room, creating a unique pattern
 2. **The ESP32 chip reads these patterns** as Channel State Information (CSI) — 52 numbers that describe how each WiFi channel changed
-3. **WASM modules analyze the patterns** to detect specific things: someone fell, a room is occupied, breathing rate changed
+3. **WASM modules analyze the patterns** to detect specific things: someone fell (**転倒検知アラート** / Fall Detect), a room baseline (**空部屋測定（ベースライン校正）** / Empty Room), breathing and heart rate (**バイタル測定（心拍・呼吸）** / Vital Signs), or movement strength (**電波変動量（動作強度）** / CSI Variance)
 4. **Events are emitted locally** — no cloud round-trip, response time under 10 ms
 
 ## Architecture
@@ -79,10 +79,10 @@ Every module talks to the ESP32 through 12 functions:
 |----------|---------|-------------|
 | `csi_get_phase(i)` | `f32` | WiFi signal phase angle for subcarrier `i` |
 | `csi_get_amplitude(i)` | `f32` | Signal strength for subcarrier `i` |
-| `csi_get_variance(i)` | `f32` | How much subcarrier `i` fluctuates |
-| `csi_get_bpm_breathing()` | `f32` | Breathing rate (BPM) |
-| `csi_get_bpm_heartrate()` | `f32` | Heart rate (BPM) |
-| `csi_get_presence()` | `i32` | Is anyone there? (0/1) |
+| `csi_get_variance(i)` | `f32` | How much subcarrier `i` fluctuates — **電波変動量（動作強度）** (CSI Variance) |
+| `csi_get_bpm_breathing()` | `f32` | Breathing rate (BPM) — **バイタル測定（心拍・呼吸）** (Vital Signs) |
+| `csi_get_bpm_heartrate()` | `f32` | Heart rate (BPM) — **バイタル測定（心拍・呼吸）** (Vital Signs) |
+| `csi_get_presence()` | `i32` | Is anyone there? (0/1) — **空部屋測定（ベースライン校正）** (Empty Room) |
 | `csi_get_motion_energy()` | `f32` | Overall movement level |
 | `csi_get_n_persons()` | `i32` | Estimated number of people |
 | `csi_get_timestamp()` | `i32` | Current timestamp (ms) |
@@ -95,8 +95,8 @@ Every module talks to the ESP32 through 12 functions:
 | Range | Category | Example Events |
 |-------|----------|---------------|
 | 0-99 | Core | Gesture detected, coherence score, anomaly |
-| 100-199 | Medical | Apnea, bradycardia, tachycardia, seizure |
-| 200-299 | Security | Intrusion, perimeter breach, loitering, panic |
+| 100-199 | Medical | Apnea, bradycardia, tachycardia, seizure — **バイタル測定（心拍・呼吸）** (Vital Signs) |
+| 200-299 | Security | Intrusion, perimeter breach, loitering, panic, fall — **転倒検知アラート** (Fall Detect) |
 | 300-399 | Smart Building | Zone occupied, HVAC, lighting, elevator, meeting |
 | 400-499 | Retail | Queue length, dwell zone, customer flow, turnover |
 | 500-599 | Industrial | Proximity warning, confined space, vibration |

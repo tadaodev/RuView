@@ -7,9 +7,9 @@
 | Module | File | What It Does | Event IDs | Budget |
 |--------|------|-------------|-----------|--------|
 | DTW Gesture Learn | `lrn_dtw_gesture_learn.rs` | Teaches custom gestures via 3 rehearsals | 730-733 | H (<10ms) |
-| Anomaly Attractor | `lrn_anomaly_attractor.rs` | Models room dynamics as a chaotic attractor | 735-738 | S (<5ms) |
+| Anomaly Attractor | `lrn_anomaly_attractor.rs` | Models room dynamics as a chaotic attractor (Empty Room / **空部屋測定（ベースライン校正）** baseline calibration) | 735-738 | S (<5ms) |
 | Meta Adapt | `lrn_meta_adapt.rs` | Self-tunes 8 detection thresholds via hill climbing | 740-743 | S (<5ms) |
-| EWC Lifelong | `lrn_ewc_lifelong.rs` | Learns new environments without forgetting old ones | 745-748 | L (<2ms) |
+| EWC Lifelong | `lrn_ewc_lifelong.rs` | Learns new environments without forgetting old ones (Empty Room / **空部屋測定（ベースライン校正）** baseline retention) | 745-748 | L (<2ms) |
 
 ## How the Learning Modules Work Together
 

@@ -97,9 +97,9 @@ elif event_id == 312:  # DEPARTURE_COUNTDOWN
 
 ### Lighting Zone Control (`bld_lighting_zones.rs`)
 
-**What it does**: Manages up to 4 independent lighting zones, automatically transitioning each zone between On (occupied and active), Dim (occupied but sedentary for over 10 minutes), and Off (vacant for over 30 seconds). Uses per-zone variance analysis to determine which areas of the room have people.
+**What it does**: Manages up to 4 independent lighting zones, automatically transitioning each zone between On (occupied and active), Dim (occupied but sedentary for over 10 minutes), and Off (vacant for over 30 seconds). Uses per-zone CSI Variance (**電波変動量（動作強度）**) analysis to determine which areas of the room have people.
 
-**How it works**: Subcarriers are divided into groups (one per zone). Each group's amplitude variance is computed and compared against a calibrated baseline. Variance deviation above threshold indicates occupancy in that zone. A calibration phase (200 frames = 10 seconds) establishes the baseline with an empty room.
+**How it works**: Subcarriers are divided into groups (one per zone). Each group's amplitude variance is computed and compared against a calibrated baseline. Variance deviation above threshold indicates occupancy in that zone. A calibration phase (200 frames = 10 seconds) establishes the baseline with an Empty Room (**空部屋測定（ベースライン校正）**).
 
 ```
 Off --> On (occupancy + activity detected)

@@ -11,9 +11,9 @@ All seven modules compile to `wasm32-unknown-unknown` and run inside the WASM3 i
 | Gesture Classifier | `gesture.rs` | Recognizes hand gestures from CSI phase sequences using DTW template matching | ~2,400 f32 ops/frame (60x40 cost matrix) |
 | Coherence Monitor | `coherence.rs` | Measures signal quality via phasor coherence across subcarriers | ~100 trig ops/frame (32 subcarriers) |
 | Anomaly Detector | `adversarial.rs` | Flags physically impossible signals: phase jumps, flatlines, energy spikes | ~130 f32 ops/frame |
-| Intrusion Detector | `intrusion.rs` | Detects unauthorized entry via phase velocity and amplitude disturbance | ~130 f32 ops/frame |
+| Intrusion Detector | `intrusion.rs` | Detects unauthorized entry via phase velocity and amplitude disturbance (Empty Room / **空部屋測定（ベースライン校正）**) | ~130 f32 ops/frame |
 | Occupancy Detector | `occupancy.rs` | Divides sensing area into spatial zones and reports which are occupied | ~100 f32 ops/frame |
-| Vital Trend Analyzer | `vital_trend.rs` | Monitors breathing/heart rate over 1-min and 5-min windows for clinical alerts | ~20 f32 ops/timer tick |
+| Vital Trend Analyzer | `vital_trend.rs` | Monitors breathing/heart rate over 1-min and 5-min windows for clinical alerts (Vital Signs / **バイタル測定（心拍・呼吸）**) | ~20 f32 ops/timer tick |
 | RVF Container | `rvf.rs` | Binary container format that packages WASM modules with manifest and signature | Builder only (std), no per-frame cost |
 
 ## Modules

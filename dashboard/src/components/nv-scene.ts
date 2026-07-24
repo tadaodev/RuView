@@ -3,6 +3,7 @@ import { LitElement, html, css, svg } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { effect } from '@preact/signals-core';
 import { lastB, bMag, fps, snr, motionReduced, running, getClient, speed, pushLog, lastFrame, scenePositions } from '../store/appStore';
+import { t } from '../i18n';
 
 interface SceneItem { id: string; x: number; y: number; color: string; name: string; }
 
@@ -335,24 +336,24 @@ export class NvScene extends LitElement {
       </svg>
 
       <div class="scene-toolbar" id="scene-toolbar">
-        <button id="zoom-in-btn" title="Zoom in" @click=${this.zoomIn}>+</button>
-        <button id="zoom-out-btn" title="Zoom out" @click=${this.zoomOut}>−</button>
-        <button id="fit-btn" title="Fit to view" @click=${this.fitView}>⊡</button>
+        <button id="zoom-in-btn" title=${t('scene.zoomIn', 'Zoom in')} @click=${this.zoomIn}>+</button>
+        <button id="zoom-out-btn" title=${t('scene.zoomOut', 'Zoom out')} @click=${this.zoomOut}>−</button>
+        <button id="fit-btn" title=${t('scene.fitView', 'Fit to view')} @click=${this.fitView}>⊡</button>
         <button id="layer-source-btn" class=${this.layerVisible.source ? 'on' : ''}
-          title="Sources" @click=${() => this.toggleLayer('source')}>●</button>
+          title=${t('scene.sources', 'Sources')} @click=${() => this.toggleLayer('source')}>●</button>
         <button id="layer-field-btn" class=${this.layerVisible.field ? 'on' : ''}
-          title="Field lines" @click=${() => this.toggleLayer('field')}>≈</button>
+          title=${t('scene.fieldLines', 'Field lines')} @click=${() => this.toggleLayer('field')}>≈</button>
         <button id="layer-label-btn" class=${this.layerVisible.label ? 'on' : ''}
-          title="Labels" @click=${() => this.toggleLayer('label')}>T</button>
+          title=${t('scene.labels', 'Labels')} @click=${() => this.toggleLayer('label')}>T</button>
       </div>
 
       <div class="sim-controls" id="sim-controls">
-        <button class="step" id="step-back-btn" title="Step back" @click=${this.stepBack}>⏮</button>
-        <button class="play" id="play-btn" title="Play / pause" @click=${this.toggleRun}>
+        <button class="step" id="step-back-btn" title=${t('scene.stepBack', 'Step back')} @click=${this.stepBack}>⏮</button>
+        <button class="play" id="play-btn" title=${t('scene.playPause', 'Play / pause')} @click=${this.toggleRun}>
           ${running.value ? '❚❚' : '▶'}
         </button>
-        <button class="step" id="step-fwd-btn" title="Step forward" @click=${this.stepFwd}>⏭</button>
-        <span class="speed" id="speed-val" title="Cycle speed" @click=${this.cycleSpeed}>${speed.value}×</span>
+        <button class="step" id="step-fwd-btn" title=${t('scene.stepForward', 'Step forward')} @click=${this.stepFwd}>⏭</button>
+        <span class="speed" id="speed-val" title=${t('scene.cycleSpeed', 'Cycle speed')} @click=${this.cycleSpeed}>${speed.value}×</span>
       </div>
 
       <div class="scene-readout">

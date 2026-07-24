@@ -13,6 +13,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { getClient, pushLog } from '../store/appStore';
 import type { TransientRunResult } from '../transport/NvsimClient';
+import { t } from '../i18n';
 
 // Tier detection thresholds — order-of-magnitude floor each transport
 // can resolve cardiac signal at, in Tesla. Source: Ghost Murmur spec
@@ -469,11 +470,9 @@ export class NvGhostMurmur extends LitElement {
 
   override render() {
     return html`
-      <h1>Ghost Murmur — open-source reality check</h1>
+      <h1>${t('ghostMurmur.title', 'Ghost Murmur — open-source reality check')}</h1>
       <div class="subtitle">
-        The physics-vs-press audit for the publicly-reported April 2026
-        CIA NV-diamond heartbeat detector, and how RuView's existing
-        stack maps onto an honest, civilian version of the same idea.
+        ${t('ghostMurmur.subtitle', "The physics-vs-press audit for the publicly-reported April 2026 CIA NV-diamond heartbeat detector, and how RuView's existing stack maps onto an honest, civilian version of the same idea.")}
       </div>
 
       <div class="links">
@@ -491,7 +490,7 @@ export class NvGhostMurmur extends LitElement {
         </a>
       </div>
 
-      <h2>What the press reported</h2>
+      <h2>${t('ghostMurmur.pressReported', 'What the press reported')}</h2>
       <div class="grid">
         <div class="card">
           <h3>The story</h3>
@@ -513,7 +512,7 @@ export class NvGhostMurmur extends LitElement {
       <h2>Live demo — nvsim WASM</h2>
       ${this.renderDemo()}
 
-      <h2>Physics reality check</h2>
+      <h2>${t('ghostMurmur.physicsCheck', 'Physics reality check')}</h2>
       <div class="card" style="padding: 6px 14px;">
         <table>
           <thead>
@@ -535,7 +534,7 @@ export class NvGhostMurmur extends LitElement {
         </p>
       </div>
 
-      <h2>RuView's three-tier mesh — what is actually buildable</h2>
+      <h2>${t('ghostMurmur.threeTierMesh', "RuView's three-tier mesh — what is actually buildable")}</h2>
       <div class="architecture">                      ┌──────────────────────────┐
                       │   Tier 3 — NV-diamond    │  Range: 0.1–2 m (lab)
                       │     magnetometer ring    │  Status: nvsim simulator only
@@ -562,7 +561,7 @@ export class NvGhostMurmur extends LitElement {
                   │   + Cramer-Rao gating          │
                   └────────────────────────────────┘</div>
 
-      <h2>Press claim → RuView equivalent</h2>
+      <h2>${t('ghostMurmur.pressVsRuview', 'Press claim → RuView equivalent')}</h2>
       <div class="card" style="padding: 6px 14px;">
         <table>
           <thead>
@@ -603,7 +602,7 @@ export class NvGhostMurmur extends LitElement {
         </table>
       </div>
 
-      <h2>Build today on $165</h2>
+      <h2>${t('ghostMurmur.buildToday', 'Build today on $165')}</h2>
       <div class="grid">
         <div class="card">
           <h3>Bill of materials</h3>
@@ -632,7 +631,7 @@ export class NvGhostMurmur extends LitElement {
         </div>
       </div>
 
-      <h2>Privacy, ethics, legal</h2>
+      <h2>${t('ghostMurmur.ethics', 'Privacy, ethics, legal')}</h2>
       <div class="ethics">
         <h3>This is the open-source version. Same physics, opposite governance.</h3>
         <ul>
@@ -651,7 +650,7 @@ export class NvGhostMurmur extends LitElement {
         </p>
       </div>
 
-      <h2>Cross-references</h2>
+      <h2>${t('ghostMurmur.crossRef', 'Cross-references')}</h2>
       <div class="card">
         <p style="font-size: 12px; color: var(--ink-2); line-height: 1.7; margin: 0;">
           <b>ADRs:</b> 014 (signal) · 021 (vitals) · 024 (AETHER) · 027 (MERIDIAN) ·

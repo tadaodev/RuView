@@ -1,16 +1,4 @@
-/**
- * HudController — Extracted HUD update, settings dialog, and scenario UI
- *
- * Manages all DOM-based HUD elements:
- * - Vital sign display with smooth lerp transitions and color coding
- * - Signal metrics, sparkline, and presence indicator
- * - Scenario description and edge module badges
- * - Mini person-count dot visualization
- * - Settings dialog (tabs, ranges, presets, data source)
- * - Quick-select scenario dropdown
- */
-
-// ---- Constants ----
+import { I18n, i18n } from '../../i18n.js';
 
 export const SCENARIO_NAMES = [
   'EMPTY ROOM','VITAL SIGNS','MULTI-PERSON','FALL DETECT',
@@ -154,6 +142,14 @@ export class HudController {
 
     // Track current scenario for description/edge updates
     this._currentScenarioKey = null;
+
+    // Listen for locale changes to refresh dynamic text
+    i18n.onLocaleChange(() => {
+      i18n.applyTranslations();
+      if (this._currentScenarioKey) {
+        this._updateScenarioDescription(this._currentScenarioKey);
+      }
+    });
   }
 
   // ============================================================
@@ -363,9 +359,9 @@ export class HudController {
     const dot = document.querySelector('#data-source-badge .dot');
     const label = document.getElementById('data-source-label');
     if (dataSource === 'ws' && ws?.readyState === WebSocket.OPEN) {
-      dot.className = 'dot dot--live'; label.textContent = 'LIVE';
+      dot.className = 'dot dot--live'; label.textContent = I18n.t('conn.live', 'LIVE');
     } else {
-      dot.className = 'dot dot--demo'; label.textContent = 'DEMO';
+      dot.className = 'dot dot--demo'; label.textContent = I18n.t('conn.simulated', 'DEMO');
     }
   }
 
@@ -430,13 +426,16 @@ export class HudController {
     if (presEl) {
       const ml = cls.motion_level || 'absent';
       presEl.className = 'presence-state';
-      if (ml === 'active') { presEl.classList.add('presence--active'); presLabel.textContent = 'ACTIVE'; }
-      else if (cls.presence) { presEl.classList.add('presence--present'); presLabel.textContent = 'PRESENT'; }
-      else { presEl.classList.add('presence--absent'); presLabel.textContent = 'ABSENT'; }
+      if (ml === 'active') { presEl.classList.add('presence--active'); presLabel.textContent = I18n.t('observatory.presence.active', 'ACTIVE'); }
+      else if (cls.presence) { presEl.classList.add('presence--present'); presLabel.textContent = I18n.t('observatory.presence.present', 'PRESENT'); }
+      else { presEl.classList.add('presence--absent'); presLabel.textContent = I18n.t('observatory.presence.absent', 'ABSENT'); }
     }
 
     const fallEl = document.getElementById('fall-alert');
-    if (fallEl) fallEl.style.display = cls.fall_detected ? 'block' : 'none';
+    if (fallEl) {
+      fallEl.textContent = I18n.t('observatory.presence.fallDetected', 'FALL DETECTED');
+      fallEl.style.display = cls.fall_detected ? 'block' : 'none';
+    }
 
     // Scenario description and edge modules
     const scenarioKey = demoData._autoMode ? (demoData.currentScenario || 'auto') : (demoData.currentScenario || 'auto');
@@ -546,7 +545,9 @@ export class HudController {
   _updateScenarioDescription(scenarioKey) {
     const el = document.getElementById('scenario-description');
     if (!el) return;
-    el.textContent = SCENARIO_DESCRIPTIONS[scenarioKey] || '';
+    const descKey = `observatory.desc.${scenarioKey}`;
+    const fallback = SCENARIO_DESCRIPTIONS[scenarioKey] || '';
+    el.textContent = I18n.t(descKey, fallback);
   }
 
   _updateEdgeModules(scenarioKey) {
