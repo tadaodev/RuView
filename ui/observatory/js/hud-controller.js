@@ -150,6 +150,11 @@ export class HudController {
         this._updateScenarioDescription(this._currentScenarioKey);
       }
     });
+
+    // Initial translation pass on DOM ready
+    setTimeout(() => {
+      i18n.applyTranslations();
+    }, 0);
   }
 
   // ============================================================

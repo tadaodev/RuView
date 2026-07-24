@@ -147,6 +147,9 @@ const translations = {
     'observatory.preset.tactical': 'Tactical / Military',
     'observatory.preset.medical': 'Medical Monitor',
 
+    'observatory.datasource.demo': 'Demo Generator',
+    'observatory.datasource.ws': 'Live WebSocket',
+
     'observatory.vitals.header': 'Vital Signs',
     'observatory.vitals.heartRate': 'Heart Rate',
     'observatory.vitals.respiration': 'Respiration',
@@ -358,6 +361,9 @@ const translations = {
     'observatory.preset.neon': 'ネオングロー',
     'observatory.preset.tactical': 'タクティカル（軍事・防犯）',
     'observatory.preset.medical': 'メディカル（医療）',
+
+    'observatory.datasource.demo': 'デモジェネレータ（シミュレーション）',
+    'observatory.datasource.ws': 'ライブ WebSocket（実機マイコン）',
 
     'observatory.vitals.header': 'バイタル測定（心拍・呼吸）',
     'observatory.vitals.heartRate': '心拍数',

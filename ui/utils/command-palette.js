@@ -113,18 +113,19 @@ export class CommandPalette {
     this.overlay.setAttribute('aria-label', 'Command palette');
     this.overlay.setAttribute('aria-modal', 'true');
 
+    const isJa = typeof window !== 'undefined' && window.i18n && window.i18n.locale === 'ja';
     this.overlay.innerHTML = `
       <div class="cmd-palette">
         <div class="cmd-palette-input-wrap">
           <svg class="cmd-palette-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="cmd-palette-input" placeholder="Type a command..." aria-label="Search commands" autocomplete="off" spellcheck="false">
+          <input type="text" class="cmd-palette-input" placeholder="${isJa ? 'コマンドの検索・実行... (Ctrl+K / ⌘K)' : 'Type a command... (Ctrl+K / ⌘K)'}" aria-label="Search commands" autocomplete="off" spellcheck="false">
           <kbd class="cmd-palette-hint">Esc</kbd>
         </div>
         <div class="cmd-palette-results" role="listbox" aria-label="Commands"></div>
         <div class="cmd-palette-footer">
-          <span><kbd>Up</kbd><kbd>Down</kbd> navigate</span>
-          <span><kbd>Enter</kbd> execute</span>
-          <span><kbd>Esc</kbd> close</span>
+          <span><kbd>↑</kbd><kbd>↓</kbd> ${isJa ? '移動' : 'navigate'}</span>
+          <span><kbd>Enter</kbd> ${isJa ? '実行' : 'execute'}</span>
+          <span><kbd>Esc</kbd> ${isJa ? '閉じる' : 'close'}</span>
         </div>
       </div>
     `;
@@ -145,7 +146,7 @@ export class CommandPalette {
   bindGlobalShortcut() {
     document.addEventListener('keydown', (e) => {
       // Ctrl+K or Cmd+K
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         this.toggle();
       }

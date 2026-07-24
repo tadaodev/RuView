@@ -1,9 +1,4 @@
-/* Help center — single dialog covering Quickstart / Glossary / FAQ /
- * Shortcuts. Opened from the topbar `?` button or by pressing `?` on
- * the keyboard. Self-contained, no external content. */
-
-import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { getLocale } from '../i18n';
 
 type Section = 'quickstart' | 'glossary' | 'faq' | 'shortcuts' | 'about';
 
@@ -13,7 +8,7 @@ interface GlossaryItem {
   category: 'physics' | 'rust' | 'ui';
 }
 
-const GLOSSARY: GlossaryItem[] = [
+const GLOSSARY_EN: GlossaryItem[] = [
   { term: 'NV-diamond', category: 'physics', body: 'Nitrogen-vacancy defect in synthetic diamond. The simulator models a 1 mm³ ensemble (~10¹² centers) addressed by 532 nm pump light + a 2.87 GHz microwave drive. Used as a room-temperature magnetometer with shot-noise floor ~1 pT/√Hz at the published lab record.' },
   { term: 'CW-ODMR', category: 'physics', body: 'Continuously-driven optically-detected magnetic resonance. Sweep the microwave frequency around the NV zero-field splitting (D = 2.87 GHz) and watch the photoluminescence dip when the microwave matches the spin transition. The dip splits with applied magnetic field along each of the four ⟨111⟩ NV axes.' },
   { term: 'MagFrame', category: 'rust', body: 'Fixed-layout 60-byte binary record nvsim emits per (sensor × sample). Magic 0xC51A_6E70, version 1, little-endian. Carries timestamp, recovered B vector (pT), per-axis sigma, noise floor, and flag bits for saturation / shot-noise-disabled / heavy-attenuation.' },
@@ -30,7 +25,24 @@ const GLOSSARY: GlossaryItem[] = [
   { term: 'Ghost Murmur', category: 'ui', body: 'Research view that audits the publicly-reported April 2026 CIA NV-diamond heartbeat detector against the open physics literature. Includes a live "Try it yourself" sandbox where you can place a heart dipole at any distance from the sensor and ask: which transport tier would actually detect it?' },
 ];
 
-const FAQ = [
+const GLOSSARY_JA: GlossaryItem[] = [
+  { term: 'NVセンターダイヤモンド (NV-diamond)', category: 'physics', body: '人工ダイヤモンド中の窒素-空孔欠陥格子。本シミュレータは532nm励起光＋2.87GHzマイクロ波で制御される1mm³（約10¹²個の欠陥）の集合体をモデル化。ショット雑音限界〜1 pT/√Hzの室温量子磁気センサーとして機能します。' },
+  { term: '連続光検出磁気共鳴 (CW-ODMR)', category: 'physics', body: 'マイクロ波周波数をゼロ場分裂(D=2.87GHz)付近で掃引し、電子スピン遷移に一致した際の蛍光強度低下を測定。外部磁場印加により、4つの⟨111⟩軸方向に共鳴線が分裂します。' },
+  { term: 'MagFrame (バイナリフレーム)', category: 'rust', body: 'nvsimが(センサー×サンプル)毎に発行する固定長60バイトのバイナリ構造体。マジック0xC51A_6E70、タイムスタンプ、復元Bベクター(pT)、軸毎の標準偏差、雑音床、フラグを保持。' },
+  { term: 'ウィトネス証明 (Witness)', category: 'rust', body: '標準参照実行(Proof::REFERENCE_SCENE_JSON @ seed=42, N=256)の全MagFrameバイナリを連結したSHA-256ハッシュ。入力が同一であればマシン・環境を問わず完全に一致する確定性証明。' },
+  { term: '確定性検証ゲート (Determinism gate)', category: 'rust', body: 'ビルドされたnvsimが期待されるウィトネスハッシュを正しく出力したかを判定するパス/フェイルチェック。全物理定数と乱数生成器の一致を検証します。' },
+  { term: 'ロックイン検波 (Lock-in demod)', category: 'physics', body: '蛍光シグナルにcos(2π·f_mod·t)を乗算しローパスフィルタを通すことで、緩やかに変化する磁場成分を復元。 Tunablesパネルでf_modパラメータを調整可能。' },
+  { term: 'ショット雑音限界 (Shot-noise floor)', category: 'physics', body: 'δB = 1 / (γ_e · C · √(N · t · T₂*)) — NV欠陥集合体における不可避の量子雑音床。デフォルト設定(N=10¹², C=0.03, T₂*=200ns)で約1.18 pT/√Hz。' },
+  { term: 'ビオ・サバールの法則 (Biot-Savart)', category: 'physics', body: '電流ループや磁気双極子から生じる空間上の磁場ベクトル計算式。Sceneパネル内の全磁源（心拍、商用電源、鉄筋体）はビオ・サバール重ね合わせで計算されます。' },
+  { term: 'マルチスタティック統合 (Multistatic fusion)', category: 'physics', body: '複数センサーの空間配置情報とCramer-Rao重み付けアテンションを組み合わせ、WiFi CSI＋60GHzレーダー＋NVセンサーのデータを高精度統合する技術。' },
+  { term: 'シーン (Scene)', category: 'ui', body: 'シミュレート対象の磁気環境。磁源（双極子、電流ループ、鉄筋体等）とセンサー位置、環境磁場を設定。コマンドパレット(Ctrl+K / ⌘K)から「新規シーン構築」が可能。' },
+  { term: 'Tunables (設定パラメータ)', category: 'ui', body: 'デジタイザおよび物理モデルのパラメータ調整スライダー。デバウンス後に自動再計算され、ストリームへ即座に反映されます。' },
+  { term: 'トランスポート (Transport)', category: 'ui', body: 'ダッシュボードとシミュレータ間の通信方式。デフォルトのWASMモードはブラウザ内のWeb Workerでローカル実行されサーバー不要。' },
+  { term: 'App Store (エッジアプリカタログ)', category: 'ui', body: 'wifi-densepose-wasm-edgeの65種類以上のホットロード可能なエッジモジュールカタログ。有効化・無効化の切り替えが可能。' },
+  { term: 'Ghost Murmur (心拍検知検証)', category: 'ui', body: '心拍による微弱磁場が実際のNVセンサーで検出可能かを物理原理に基づき検証する研究用インターフェース。' },
+];
+
+const FAQ_EN = [
   {
     q: 'Is this a real simulator or a mockup?',
     a: 'Real. The Rust crate at v2/crates/nvsim is the same code that runs in the browser via WASM. Press <b>Verify witness</b> on the Witness panel — the SHA-256 you see is byte-equivalent to what `cargo test -p nvsim` produces.',
@@ -61,7 +73,38 @@ const FAQ = [
   },
 ];
 
-const QUICKSTART = [
+const FAQ_JA = [
+  {
+    q: 'これは実際のシミュレータですか、それともモックアップですか？',
+    a: '本物のシミュレータです。<code>v2/crates/nvsim</code> にあるRustクレートがWASMとしてブラウザ上で直接動作しています。Witnessパネルで「ウィトネス検証」を実行すると、`cargo test -p nvsim` で得られるSHA-256と完全に一致することが確認できます。',
+  },
+  {
+    q: 'Ghost Murmurデモで「復元磁場 |B|」が「予測値」よりはるかに高いのはなぜですか？',
+    a: '復元値は磁気シグナル本体ではなく、ADCの量子化雑音床を読み取っているためです。汎用センサー雑音(~300 pT/√Hz)と16bit ADC(±10 µT FS)の組み合わせでは、1 pT未満の微弱シグナルは約2 nTの量子化残差の中に埋もれてしまいます。',
+  },
+  {
+    q: '独自のカスタム磁気シーンを実行できますか？',
+    a: 'はい。<b>Ctrl+K / ⌘K</b> を押してコマンドパレットを開き、「新規シーン構築」を選択してください。名前、双極子モーメント、距離、鉄筋・電源線の有無を指定して作成できます。',
+  },
+  {
+    q: 'ブラウザから外部サーバーへデータが送信されることはありますか？',
+    a: 'いいえ。WASMモードは完全ローカル動作です。Worker、WASMバイナリ、IndexedDBキャッシュのすべてがブラウザ内で完結します。',
+  },
+  {
+    q: 'ウィトネス不一致（赤の ✗）は何を意味していますか？',
+    a: '現在のビルドで生成されたSHA-256が、コンパイル時に固定された定数と一致しなかったことを意味します。Rustツールチェーンの違いや依存関係の変動、物理定数の変更が原因として考えられます。',
+  },
+  {
+    q: '右側にインスペクターがあるのに、左レールにもInspector / Witnessボタンがあるのはなぜですか？',
+    a: '右側インスペクターはコンパクトなリアルタイム表示用です。左レールのボタンを押すと、より大きなグラフや詳細なメタデータカードを備えたフルサイズビューが開きます。両者は常に同期しています。',
+  },
+  {
+    q: '磁気シミュレータなのに「App Store」があるのはなぜですか？',
+    a: 'nvsimはRuView大規模センシングプラットフォームの一機能に過ぎないためです。App Storeには医療、防犯、施設管理、AI自動化など65種類以上のエッジモジュールが登録されています。',
+  },
+];
+
+const QUICKSTART_EN = [
   { step: 1, title: 'Hit ▶ Run', body: 'The big amber button in the topbar starts the live frame stream. The pipeline runs ~1.8 kHz on x86_64 WASM, well above the 1 kHz Cortex-A53 acceptance gate.' },
   { step: 2, title: 'Watch the B-vector trace', body: 'The Inspector → Signal tab shows the recovered field per axis updating in real time. The frame strip below it is one bar per ~32-frame batch.' },
   { step: 3, title: 'Verify the witness', body: 'Click the rail Witness button (or REPL: <code>proof.verify</code>). The dashboard re-runs the canonical reference scene and asserts the SHA-256 byte-for-byte.' },
@@ -71,19 +114,44 @@ const QUICKSTART = [
   { step: 7, title: 'Browse the App Store', body: 'The grid icon. 65+ edge apps: medical, security, building, retail, industrial, signal, learning. Toggle to mark active in this session.' },
 ];
 
-const SHORTCUTS = [
-  { keys: '⌘K  /  Ctrl K', label: 'Command palette' },
+const QUICKSTART_JA = [
+  { step: 1, title: '▶ 実行 ボタンを押す', body: 'トップバーのオレンジ色の「実行」ボタンを押すとライブフレームストリームが開始します。WASM環境で約1.8kHzで高速処理されます。' },
+  { step: 2, title: 'Bベクトルトレースを観測する', body: 'インスペクターの「Signal」タブで、軸ごとの復元磁場がリアルタイム更新される様子を確認します。' },
+  { step: 3, title: 'ウィトネス（証明）を検証する', body: '左レールの「Witness」ボタンを押すと、標準参照シーンを再実行し、SHA-256ハッシュがバイト単位で一致することを証明します。' },
+  { step: 4, title: '磁源をドラッグ移動する', body: 'キャンバス上の心拍プロキシ、電源線ループ、鉄筋オブジェクトをドラッグして位置を変更できます（位置はIndexedDBに自動保存）。' },
+  { step: 5, title: 'Tunablesパラメータを調整する', body: 'サイドバーのスライダーでサンプリング周波数(f_s)や変調周波数(f_mod)を変更すると、300ms後に自動的にパイプラインへ反映されます。' },
+  { step: 6, title: 'Ghost Murmurビューを開く', body: '左レールのゴーストアイコンから、距離や双極子モーメントを変更して「この距離でnvsimを実行」を押し、検出限界を実証します。' },
+  { step: 7, title: 'App Storeを閲覧する', body: 'グリッドアイコンから65種類以上の医療・防犯・施設管理モジュールをセッション内で自由に有効化できます。' },
+];
+
+const SHORTCUTS_EN = [
+  { keys: 'Ctrl K  /  ⌘K', label: 'Command palette' },
   { keys: 'Space', label: 'Play / pause pipeline' },
-  { keys: '⌘R  /  Ctrl R', label: 'Reset pipeline (with confirm)' },
-  { keys: '⌘,  /  Ctrl ,', label: 'Settings drawer' },
-  { keys: '⌘N  /  Ctrl N', label: 'New scene' },
-  { keys: '⌘E  /  Ctrl E', label: 'Export proof bundle' },
-  { keys: '⌘/  /  Ctrl /', label: 'Toggle theme (dark / light)' },
+  { keys: 'Ctrl R  /  ⌘R', label: 'Reset pipeline (with confirm)' },
+  { keys: 'Ctrl ,  /  ⌘,', label: 'Settings drawer' },
+  { keys: 'Ctrl N  /  ⌘N', label: 'New scene' },
+  { keys: 'Ctrl E  /  ⌘E', label: 'Export proof bundle' },
+  { keys: 'Ctrl /  /  ⌘/', label: 'Toggle theme (dark / light)' },
   { keys: '`', label: 'Toggle debug HUD' },
   { keys: '?', label: 'Open this help center' },
   { keys: '1 · 2 · 3', label: 'Switch inspector tab (Signal / Frame / Witness)' },
   { keys: 'Esc', label: 'Close any modal / palette / drawer' },
   { keys: '/', label: 'Focus the REPL prompt' },
+];
+
+const SHORTCUTS_JA = [
+  { keys: 'Ctrl K  /  ⌘K', label: 'コマンドパレットを開く' },
+  { keys: 'Space', label: 'パイプラインの再生 / 一時停止' },
+  { keys: 'Ctrl R  /  ⌘R', label: 'パイプラインのリセット (要確認)' },
+  { keys: 'Ctrl ,  /  ⌘,', label: '環境設定ドロワーを開く' },
+  { keys: 'Ctrl N  /  ⌘N', label: '新規シーンの構築' },
+  { keys: 'Ctrl E  /  ⌘E', label: '証明（Proof）バンドルのエクスポート' },
+  { keys: 'Ctrl /  /  ⌘/', label: 'テーマ切替 (ダーク / ライト)' },
+  { keys: '`', label: 'デバッグHUDの表示切替' },
+  { keys: '?', label: 'このヘルプセンターを開く' },
+  { keys: '1 · 2 · 3', label: 'インスペクタータブ切り替え (Signal / Frame / Witness)' },
+  { keys: 'Esc', label: 'モーダル / パレット / ドロワーを閉じる' },
+  { keys: '/', label: 'REPLプロンプトにフォーカス' },
 ];
 
 @customElement('nv-help')
@@ -270,6 +338,9 @@ export class NvHelp extends LitElement {
       gap: 8px 16px;
       align-items: baseline;
     }
+    .tour-btn {
+        display:inline-flex; align-items:center; gap:8px; padding:10px 16px; margin-bottom:14px; background:var(--accent); color:#1a0f00; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+    }
     .f {
       grid-column: 1 / -1;
       padding: 10px 18px;
@@ -323,23 +394,24 @@ export class NvHelp extends LitElement {
   };
 
   private filteredGlossary(): GlossaryItem[] {
-    if (!this.query.trim()) return GLOSSARY;
+    const list = getLocale() === 'ja' ? GLOSSARY_JA : GLOSSARY_EN;
+    if (!this.query.trim()) return list;
     const q = this.query.toLowerCase();
-    return GLOSSARY.filter((g) =>
+    return list.filter((g) =>
       g.term.toLowerCase().includes(q) || g.body.toLowerCase().includes(q),
     );
   }
 
   private renderQuickstart() {
+    const isJa = getLocale() === 'ja';
+    const steps = isJa ? QUICKSTART_JA : QUICKSTART_EN;
     return html`
-      <h2>Quickstart</h2>
-      <p class="lead">Seven taps to get from "I just opened the dashboard" to "I'm running my own scene with verified determinism."</p>
-      <button
-        style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; margin-bottom:14px; background:var(--accent); color:#1a0f00; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;"
-        @click=${() => { window.dispatchEvent(new CustomEvent('nv-show-help-close')); window.dispatchEvent(new CustomEvent('nv-show-tour')); }}>
-        ★ Take the interactive 10-step tour
+      <h2>${isJa ? '🚀 クイックスタートガイド' : 'Quickstart guide'}</h2>
+      <p class="lead">${isJa ? 'nvsimダッシュボードを使いこなすための7ステップガイド。' : 'Seven steps to get the most out of the dashboard.'}</p>
+      <button class="tour-btn" @click=${() => { this.close(); window.dispatchEvent(new CustomEvent('nv-start-tour')); }}>
+        ${isJa ? '★ インタラクティブな10ステップツアーを開始する' : '★ Take the interactive 10-step tour'}
       </button>
-      ${QUICKSTART.map((s) => html`
+      ${steps.map((s) => html`
         <div class="step">
           <div class="num">${s.step}</div>
           <div>

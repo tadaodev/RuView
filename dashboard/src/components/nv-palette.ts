@@ -65,33 +65,34 @@ export class NvPalette extends LitElement {
   `;
 
   private get cmds(): Cmd[] {
+    const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
+    const modKey = isMac ? '⌘' : 'Ctrl+';
+    const isJa = getLocale() === 'ja';
     return [
-      { ico: '▶', label: t('palette.runPipeline', 'Run pipeline'), kbd: 'Space', run: async () => { await getClient()?.run(); running.value = true; toast('Pipeline running', '▶'); } },
-      { ico: '❚', label: t('palette.pausePipeline', 'Pause pipeline'), run: async () => { await getClient()?.pause(); running.value = false; toast('Paused', '❚❚'); } },
-      { ico: '+', label: t('palette.newScene', 'New scene…'), kbd: '⌘N', run: () => openModal({
-        title: 'New scene',
-        body: `<p>Build a fresh magnetic scene. The dashboard generates the JSON
-          and pushes it to the running pipeline (or you can copy the JSON
-          for offline use).</p>
-          <label>Name</label>
+      { ico: '▶', label: t('palette.runPipeline', 'Run pipeline'), kbd: 'Space', run: async () => { await getClient()?.run(); running.value = true; toast(t('palette.pipelineRunning', 'Pipeline running'), '▶'); } },
+      { ico: '❚', label: t('palette.pausePipeline', 'Pause pipeline'), run: async () => { await getClient()?.pause(); running.value = false; toast(t('palette.paused', 'Paused'), '❚❚'); } },
+      { ico: '+', label: t('palette.newScene', 'New scene…'), kbd: `${modKey}N`, run: () => openModal({
+        title: isJa ? '新規シーン構築' : 'New scene',
+        body: `<p>${isJa ? '新しい磁気環境シーンを構築します。パラメータを指定してパイプラインへ直接読み込ませます。' : 'Build a fresh magnetic scene. The dashboard generates the JSON and pushes it to the running pipeline.'}</p>
+          <label>${isJa ? 'シーン名' : 'Name'}</label>
           <input type="text" id="ns-name" value="custom-scene-${Date.now().toString(36)}" />
-          <label>Heart-proxy dipole moment (A·m²)</label>
+          <label>${isJa ? '心拍プロキシ双極子モーメント (A·m²)' : 'Heart-proxy dipole moment (A·m²)'}</label>
           <input type="text" id="ns-moment" value="1.0e-6" />
-          <label>Distance heart → sensor (m)</label>
+          <label>${isJa ? '心拍 → センサー間距離 (m)' : 'Distance heart → sensor (m)'}</label>
           <input type="text" id="ns-distance" value="0.5" />
-          <label>Add ferrous distractor at +x = 1 m?</label>
+          <label>${isJa ? '鉄筋コイル（鋼鉄 χ=5000）を配置しますか？' : 'Add ferrous distractor at +x = 1 m?'}</label>
           <select id="ns-ferrous">
-            <option value="0">No</option>
-            <option value="1" selected>Yes (steel coil, χ=5000)</option>
+            <option value="0">${isJa ? 'いいえ' : 'No'}</option>
+            <option value="1" selected>${isJa ? 'はい (鉄筋コイル, χ=5000)' : 'Yes (steel coil, χ=5000)'}</option>
           </select>
-          <label>Add 60 Hz mains-current loop?</label>
+          <label>${isJa ? '60 Hz 商用電源電流ループを配置しますか？' : 'Add 60 Hz mains-current loop?'}</label>
           <select id="ns-mains">
-            <option value="0">No</option>
-            <option value="1" selected>Yes (2 A loop, 5 cm radius, +y = 1 m)</option>
+            <option value="0">${isJa ? 'いいえ' : 'No'}</option>
+            <option value="1" selected>${isJa ? 'はい (2 A ループ, 半径5cm, +y = 1 m)' : 'Yes (2 A loop, 5 cm radius, +y = 1 m)'}</option>
           </select>`,
         buttons: [
-          { label: 'Cancel', variant: 'ghost' },
-          { label: 'Create', variant: 'primary', onClick: async () => {
+          { label: isJa ? 'キャンセル' : 'Cancel', variant: 'ghost' },
+          { label: isJa ? '作成' : 'Create', variant: 'primary', onClick: async () => {
             const root = document.querySelector('nv-app')?.shadowRoot?.querySelector('nv-modal')?.shadowRoot;
             if (!root) return;
             const name = (root.querySelector<HTMLInputElement>('#ns-name')?.value ?? 'custom').trim();
@@ -117,7 +118,7 @@ export class NvPalette extends LitElement {
           } },
         ],
       }) },
-      { ico: '📦', label: t('palette.exportProof', 'Export proof bundle…'), kbd: '⌘E', run: async () => {
+      { ico: '📦', label: t('palette.exportProof', 'Export proof bundle…'), kbd: `${modKey}E`, run: async () => {
         const c = getClient(); if (!c) return;
         pushLog('dbg', 'building proof bundle…');
         try {
@@ -132,12 +133,12 @@ export class NvPalette extends LitElement {
           toast(`Proof bundle saved (${blob.size} B)`, '📦');
         } catch (e) { pushLog('err', `export failed: ${(e as Error).message}`); }
       } },
-      { ico: '⟳', label: t('palette.resetPipeline', 'Reset pipeline'), kbd: '⌘R', run: () => openModal({
-        title: 'Reset pipeline?',
-        body: '<p>Clears the frame stream and rewinds <code>t</code> to 0.</p>',
+      { ico: '⟳', label: t('palette.resetPipeline', 'Reset pipeline'), kbd: `${modKey}R`, run: () => openModal({
+        title: isJa ? 'パイプラインをリセットしますか？' : 'Reset pipeline?',
+        body: `<p>${isJa ? 'フレームストリームをクリアし、時間 <code>t</code> を0に戻します。' : 'Clears the frame stream and rewinds <code>t</code> to 0.'}</p>`,
         buttons: [
-          { label: 'Cancel', variant: 'ghost' },
-          { label: 'Reset', variant: 'danger', onClick: async () => { await getClient()?.reset(); pushLog('warn', 'pipeline reset · t=0'); toast('Pipeline reset', '⟳'); } },
+          { label: isJa ? 'キャンセル' : 'Cancel', variant: 'ghost' },
+          { label: isJa ? 'リセット' : 'Reset', variant: 'danger', onClick: async () => { await getClient()?.reset(); pushLog('warn', 'pipeline reset · t=0'); toast('Pipeline reset', '⟳'); } },
         ],
       }) },
       { ico: '✓', label: t('palette.verifyWitness', 'Verify witness'), run: async () => {
@@ -150,29 +151,29 @@ export class NvPalette extends LitElement {
         if (r.ok) { witnessVerified.value = 'ok'; witnessHex.value = exp; toast('Witness verified', '✓'); }
         else { witnessVerified.value = 'fail'; toast('Witness mismatch!', '✗'); }
       } },
-      { ico: '☼', label: t('palette.toggleTheme', 'Toggle theme'), kbd: '⌘/', run: () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; } },
-      { ico: '⚙', label: t('palette.openSettings', 'Open settings'), kbd: '⌘,', run: () => window.dispatchEvent(new CustomEvent('open-settings')) },
+      { ico: '☼', label: t('palette.toggleTheme', 'Toggle theme'), kbd: `${modKey}/`, run: () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; } },
+      { ico: '⚙', label: t('palette.openSettings', 'Open settings'), kbd: `${modKey},`, run: () => window.dispatchEvent(new CustomEvent('open-settings')) },
       { ico: '?', label: t('palette.shortcuts', 'Keyboard shortcuts…'), run: () => openModal({
-        title: 'Keyboard shortcuts',
+        title: isJa ? 'キーボードショートカット一覧' : 'Keyboard shortcuts',
         body: `<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;">
-          <div><code>⌘K / Ctrl K</code></div><div>Command palette</div>
-          <div><code>Space</code></div><div>Play / pause</div>
-          <div><code>⌘R</code></div><div>Reset</div>
-          <div><code>⌘,</code></div><div>Settings</div>
-          <div><code>⌘/</code></div><div>Toggle theme</div>
-          <div><code>\`</code></div><div>Debug HUD</div>
-          <div><code>1 · 2 · 3</code></div><div>Inspector tabs</div>
-          <div><code>Esc</code></div><div>Close modal/palette</div>
-          <div><code>/</code></div><div>Focus REPL</div>
+          <div><code>Ctrl K / ⌘K</code></div><div>${isJa ? 'コマンドパレット' : 'Command palette'}</div>
+          <div><code>Space</code></div><div>${isJa ? '再生 / 一時停止' : 'Play / pause'}</div>
+          <div><code>Ctrl R / ⌘R</code></div><div>${isJa ? 'パイプラインをリセット' : 'Reset'}</div>
+          <div><code>Ctrl , / ⌘,</code></div><div>${isJa ? '環境設定' : 'Settings'}</div>
+          <div><code>Ctrl / / ⌘/</code></div><div>${isJa ? 'テーマ切替（ダーク/ライト）' : 'Toggle theme'}</div>
+          <div><code>\`</code></div><div>${isJa ? 'デバッグHUD表示' : 'Debug HUD'}</div>
+          <div><code>1 · 2 · 3</code></div><div>${isJa ? 'インスペクタータブ切替' : 'Inspector tabs'}</div>
+          <div><code>Esc</code></div><div>${isJa ? 'モーダル / パレットを閉じる' : 'Close modal/palette'}</div>
+          <div><code>/</code></div><div>${isJa ? 'REPLプロンプトにフォーカス' : 'Focus REPL'}</div>
         </div>`,
-        buttons: [{ label: 'Close', variant: 'primary' }],
+        buttons: [{ label: isJa ? '閉じる' : 'Close', variant: 'primary' }],
       }) },
       { ico: 'i', label: t('palette.about', 'About nvsim…'), run: () => openModal({
-        title: 'About nvsim',
-        body: `<p><b>nvsim</b> is a deterministic, byte-reproducible forward simulator for nitrogen-vacancy diamond magnetometry.</p>
-          <p>This dashboard runs nvsim as WASM in a Web Worker. Same <code>(scene, config, seed)</code> → byte-identical SHA-256 witness across runs and machines.</p>
-          <p>License: MIT OR Apache-2.0 · See ADR-089, ADR-092.</p>`,
-        buttons: [{ label: 'Close', variant: 'primary' }],
+        title: isJa ? 'nvsim について' : 'About nvsim',
+        body: `<p><b>nvsim</b> は、窒素-空孔（NV）ダイヤモンド磁気センシングのための確定性順方向シミュレータです。</p>
+          <p>このダッシュボードでは、Web Worker内でWASMとしてnvsimを実行しています。同一の <code>(scene, config, seed)</code> からマシンを問わずバイト単位で完全一致するSHA-256ウィトネス（証明）を生成します。</p>
+          <p>ライセンス: MIT OR Apache-2.0 · ADR-089, ADR-092。</p>`,
+        buttons: [{ label: isJa ? '閉じる' : 'Close', variant: 'primary' }],
       }) },
     ];
   }
