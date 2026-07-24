@@ -7,6 +7,7 @@ import { customElement, state } from 'lit/decorators.js';
 import './nv-rail';
 import './nv-topbar';
 import './nv-sidebar';
+import './nv-home';
 import './nv-scene';
 import './nv-inspector';
 import './nv-console';
