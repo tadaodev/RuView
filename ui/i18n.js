@@ -537,6 +537,10 @@ export class I18n {
   applyTranslations() {
     if (typeof document === 'undefined') return;
 
+    if (document.documentElement) {
+      document.documentElement.setAttribute('lang', this.locale);
+    }
+
     // Translate elements with data-i18n attribute
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       const key = el.getAttribute('data-i18n');

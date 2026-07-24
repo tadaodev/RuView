@@ -543,6 +543,9 @@ export class I18nManager extends EventTarget {
   constructor() {
     super();
     this.currentLocale = detectDefaultLocale();
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.lang = this.currentLocale;
+    }
   }
 
   public getLocale(): SupportedLocale {
@@ -553,6 +556,9 @@ export class I18nManager extends EventTarget {
     if (locale !== 'ja' && locale !== 'en') return;
     if (this.currentLocale === locale) return;
     this.currentLocale = locale;
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.lang = locale;
+    }
     this.dispatchEvent(new CustomEvent('locale-changed', { detail: { locale } }));
     this.listeners.forEach((cb) => {
       try {
