@@ -1,3 +1,5 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
 import { getLocale } from '../i18n';
 
 type Section = 'quickstart' | 'glossary' | 'faq' | 'shortcuts' | 'about';

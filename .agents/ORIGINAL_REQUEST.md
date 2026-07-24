@@ -36,3 +36,27 @@ Integrity mode: development
 ### 2. テスト・ビルド受入検証
 - [ ] Vite Dashboard のビルド (`npx vite build`) および Rust / Python テストが成功（PASS）すること。
 - [ ] 深夜帯エラー時の安全停止・再開ルールに準拠して実行完了すること。
+
+## Follow-up — 2026-07-24T21:59:08Z
+
+RuViewダッシュボード（http://127.0.0.1:5174/）およびObservatory 3D画面（http://127.0.0.1:3000/observatory.html）の完全日本語ローカライズ、画面描画（真っ白な画面の解消）、キーボードショートカット（Windows Ctrl+K / Ctrl+R / Ctrl+, 対応）、および動作検証を実施する。
+
+Working directory: c:\Project\RuView
+
+## タスク内容
+
+1. **画面描画と完全日本語化の監査・検証**:
+   - `dashboard/` の全Litコンポーネント（`nv-app`, `nv-help`, `nv-palette`, `nv-onboarding`, `nv-settings-drawer` 等）でインポートエラーや未定義参照による真っ白画面（Blank Screen）が発生しないことを検証。
+   - ダッシュボードのオンボーディング（`Welcome to nvsim`）、ヘルプセンター（全5タブ）、設定ドロワー、コマンドパレット、Observatory 3Dの全セレクトボックス・設定ダイアログが、日本語選択時に日本人が一目で理解できる自然な日本語表記になっていることを全検証。
+
+2. **Windows用キーボードショートカット対応の検証**:
+   - Mac OS専用キー（⌘K, ⌘R, ⌘,）を Windows の `Ctrl+K`, `Ctrl+R`, `Ctrl+,` で完全に動作させ、表記も `Ctrl+K / ⌘K` 等で整っていること。
+
+3. **ビルド受入検証**:
+   - `npx vite build` を `dashboard/` 内で実行し、エラー 0 件で正常コンパイルされることを確認。
+
+4. **チーム運用**:
+   - **製造者 (Developer)**: コンポーネントおよび辞書の修正
+   - **システム監査 (Auditor)**: コード・表示品質およびリグレッション検証
+   - **テスター (Tester)**: ビルドおよび動作確認
+
