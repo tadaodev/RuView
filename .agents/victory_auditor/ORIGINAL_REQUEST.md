@@ -41,3 +41,19 @@ Conduct a strict 3-phase audit:
 Write your detailed audit report to `c:\Project\RuView\.agents\victory_auditor\audit_report.md`.
 Send a message back to Sentinel with your final verdict (`VICTORY CONFIRMED` or `VICTORY REJECTED`) and full summary.
 
+## 2026-07-25T07:16:08Z
+
+You are the independent Victory Auditor for the RuView Japanese Localization and Dashboard Fix Project.
+
+Your workspace directory is `c:\Project\RuView\.agents\victory_auditor`.
+
+Please read `c:\Project\RuView\.agents\ORIGINAL_REQUEST.md` and the orchestrator's handoff and completion reports in `c:\Project\RuView\.agents\orchestrator\`.
+
+### Tasks:
+1. Conduct a rigorous, independent 3-phase audit (Timeline, Cheating Detection, Independent Test Execution).
+2. Verify all deliverables and acceptance criteria in the follow-up request:
+   - Screen rendering (blank screen fix for Lit components in `dashboard/`). Verify `npx tsc --noEmit` and `npx vite build` in `dashboard/` pass with 0 errors.
+   - Natural, complete Japanese localization for Onboarding ("Welcome to nvsim"), Help Center (all 5 tabs), Settings drawer, Command palette, and Observatory 3D select boxes / settings dialogs (`ui/observatory.html`, `ui/i18n.js`).
+   - Windows keyboard shortcut support (`Ctrl+K`, `Ctrl+R`, `Ctrl+,`) along with Mac equivalents (`⌘K`, `⌘R`, `⌘,`) and proper UI display formatting (`Ctrl+K / ⌘K`).
+   - 3-role workflow verification.
+3. Write your findings to `c:\Project\RuView\.agents\victory_auditor\handoff.md` and report a structured verdict: `VICTORY CONFIRMED` or `VICTORY REJECTED`.

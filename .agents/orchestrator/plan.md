@@ -24,8 +24,19 @@
 - **M5: R3 CLI, Console Logs & Error Messages**
   - Localize CLI help commands, console log messages, and error messages.
   - Ensure formatting specifiers (placeholders) are intact.
-- **M6: R5 Final 3-Role Audit, Testing & Acceptance Verification**
-  - Developer handoff review.
-  - Auditor verification (license, security, code quality, regression).
-  - Tester automated execution (all test suites pass).
-  - Forensic Auditor integrity verification.
+- **M11: R4 Final 3-Role Verification & Forensic Audit** (Completed)
+- **M12: Phase 3 Baseline Exploration & Codebase Inspection**
+  - Inspect Lit components in `dashboard/` (`nv-app`, `nv-help`, `nv-palette`, `nv-onboarding`, `nv-settings-drawer`, etc.) for import errors or undefined references causing blank screen issues.
+  - Inspect Onboarding, Help Center (all 5 tabs), Settings drawer, Command palette, and Observatory 3D select boxes & dialogs for translation gaps.
+  - Audit keyboard shortcut handlers (`Ctrl+K`, `Ctrl+R`, `Ctrl+,`) and UI display labels (`Ctrl+K / ⌘K`).
+- **M13: R1 Component Render, Localization & Windows Shortcut Fixes (Developer)**
+  - Developer fixes Lit components and imports to eliminate blank screen issues in `dashboard/`.
+  - Complete natural Japanese localization for Onboarding ("Welcome to nvsim"), Help Center (5 tabs), Settings drawer, Command palette, and Observatory 3D select boxes & dialogs.
+  - Add Windows shortcut listeners (`Ctrl+K`, `Ctrl+R`, `Ctrl+,`) and update UI labels to `Ctrl+K / ⌘K` format.
+- **M14: R2 System Quality & Regression Audit (Auditor)**
+  - Auditor verifies UI rendering integrity, full Japanese localization coverage, Windows keyboard shortcut support, code quality, and commercial license compliance.
+- **M15: R3 Build & Operational Verification (Tester)**
+  - Tester executes `npx vite build` in `dashboard/` (0 errors), runs test suites, and verifies operational functionality.
+- **M16: R4 Final Forensic Integrity Audit**
+  - Forensic Auditor conducts integrity audit to ensure genuine component fixes and shortcuts without fake implementations or hardcoded shortcuts.
+

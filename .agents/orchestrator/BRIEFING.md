@@ -1,7 +1,7 @@
 # BRIEFING — 2026-07-25T00:44:30+09:00
 
 ## Mission
-Orchestrate Phase 2 Japanese localization and error pausing guard for RuView across Classic Web UI, Observatory 3D, Vite Dashboard, documentation (`README.ja.md`, `docs/`), and 3-role workflow (Developer, Auditor, Tester).
+Orchestrate Phase 3 Lit component rendering fix, complete Japanese localization audit/fix (Onboarding, Help 5 tabs, Settings drawer, Command palette, Observatory 3D dialogs), Windows keyboard shortcuts (`Ctrl+K/R/,` and `Ctrl+K / ⌘K` display labels), clean Vite build (`npx vite build`), and 3-role verification (Developer, Auditor, Tester, Forensic Auditor).
 
 ## 🔒 My Identity
 - Archetype: self
@@ -13,18 +13,23 @@ Orchestrate Phase 2 Japanese localization and error pausing guard for RuView acr
 ## 🔒 My Workflow
 - **Pattern**: Project Orchestration Pattern
 - **Scope document**: c:\Project\RuView\.agents\orchestrator\PROJECT.md
-1. **Decompose**: Decompose RuView localization and 3-role execution into discrete milestones (M7 Exploration, M8 R1 Web UI Full Localization, M9 R2 Documentation Polish, M10 R3 Error Pausing Guard, M11 3-Role Verification & Audit).
+1. **Decompose**: Decompose RuView Phase 3 dashboard fix and 3-role execution into discrete milestones (M12 Phase 3 Exploration, M13 Component Render & Localization & Windows Shortcut Fixes, M14 System Quality Audit, M15 Build & Operational Verification, M16 Final Forensic Integrity Audit).
 2. **Dispatch & Execute**: Direct iteration loop or delegate to sub-orchestrators for milestones. Apply 3-role cycle (Developer -> Auditor -> Tester -> Forensic Auditor gate).
 3. **On failure**: Retry -> Replace -> Skip -> Redistribute -> Redesign.
 4. **Succession**: Self-succeed at 16 spawns.
 - **Work items**:
-  1. Milestone 7: Exploration & Codebase Inspection (Phase 2) [done]
-  2. Milestone 8: R1 Web UI Full Japanese Localization & Friendly Terms [done]
-  3. Milestone 9: R2 Major Documentation Polish [done]
-  4. Milestone 10: R3 Error Pausing Guard & Retry Control [done]
-  5. Milestone 11: R4 Final 3-Role Verification & Forensic Audit [done]
-- **Current phase**: 11 (Completed)
-- **Current focus**: Final Completion Report & Sentinel Handoff
+  1. Milestone 12: Phase 3 Baseline Exploration & Inspection [done]
+  2. Milestone 13: R1 Component Render, Localization & Windows Shortcut Fixes [done]
+  3. Milestone 14: R2 System Quality, UI & License Audit [done]
+  4. Milestone 15: R3 Build & Operational Verification [done]
+  5. Milestone 16: R4 Final Forensic Integrity Audit [done]
+- **Current phase**: Completed
+- **Current focus**: Sentinel Victory Audit Handoff
+
+
+
+
+
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
@@ -44,7 +49,21 @@ Orchestrate Phase 2 Japanese localization and error pausing guard for RuView acr
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
 |-------|------|-----------|--------|---------|
+| Auditor M16 | teamwork_preview_auditor | Forensic Integrity Audit Gate | completed (CLEAN) | 0a0dda74-f60b-4021-82f2-22a60c55ff18 |
+| Reviewer M14 | teamwork_preview_reviewer | Auditor System & UI Quality Review | completed (APPROVED) | 1acb7371-739d-4d65-98e0-8c52fc650058 |
+| Challenger M15 | teamwork_preview_challenger | Tester Build & Operational Verification | completed (PASS) | 0aa84c06-02a5-4886-bd32-d4f9b25c9f1f |
+
+
+
+
+| Worker M13 | teamwork_preview_worker | Component Render & Localization Fixes | completed | d2bce42a-6a37-40d3-abf8-c766c831ca70 |
+| Explorer M12 | teamwork_preview_explorer | Baseline Inspection & UI/Shortcut Audit | completed | b6c77ea5-3687-435c-a4e5-42a0908e6c8b |
+
+
+
 | Challenger M11 | teamwork_preview_challenger | Automated Build & Test Verification M11 | completed (PASS) | 866afb6e-fd27-48c0-b7c4-80de17fc88e6 |
+
+
 | Reviewer M11 | teamwork_preview_reviewer | System Quality & License Audit M11 | completed (APPROVED) | 9e76332f-e24e-4843-91c2-4dfef473f4dd |
 | Auditor M11 | teamwork_preview_auditor | Final Forensic Integrity Audit M11 | completed (CLEAN) | 251a87d6-7fc3-4f66-9c62-b90a24aaa961 |
 

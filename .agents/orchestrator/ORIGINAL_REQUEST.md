@@ -40,3 +40,20 @@ Objectives:
 Maintain `c:\Project\RuView\.agents\orchestrator\progress.md` and report progress updates.
 When all acceptance criteria are met, send a completion claim to Sentinel.
 
+## Follow-up Request — 2026-07-25T06:59:19+09:00
+
+Summary of Goal:
+1. Screen rendering & Complete Japanese Localization Audit/Fix:
+   - Verify and fix all Lit components in `dashboard/` (`nv-app`, `nv-help`, `nv-palette`, `nv-onboarding`, `nv-settings-drawer`, etc.) to prevent blank screen issues caused by import errors or undefined references.
+   - Ensure Onboarding ("Welcome to nvsim"), Help Center (all 5 tabs), Settings drawer, Command palette, Observatory 3D select boxes and dialogs are completely and naturally translated into Japanese.
+2. Windows Keyboard Shortcuts:
+   - Ensure Windows shortcuts `Ctrl+K`, `Ctrl+R`, `Ctrl+,` work properly along with Mac `⌘K`, `⌘R`, `⌘,`.
+   - Ensure display labels show Windows equivalents (e.g. `Ctrl+K / ⌘K`).
+3. Build Validation:
+   - Verify `npx vite build` in `dashboard/` compiles cleanly with 0 errors.
+4. Team Execution (3-role structure):
+   - Developer: Component and dictionary fixes.
+   - Auditor: Code/UI quality and regression validation.
+   - Tester: Build and operation verification.
+
+

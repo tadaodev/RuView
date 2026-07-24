@@ -5,7 +5,7 @@ import { openModal } from './nv-modal';
 import {
   getClient, theme, expectedWitness, witnessHex, witnessVerified, pushLog, running,
 } from '../store/appStore';
-import { t } from '../i18n';
+import { t, getLocale } from '../i18n';
 
 interface Cmd { ico: string; label: string; kbd?: string; run: () => void; }
 
@@ -114,7 +114,7 @@ export class NvPalette extends LitElement {
             };
             await getClient()?.loadScene(scene);
             pushLog('ok', `scene <span class="s">${name}</span> loaded · 1 dipole · ${mains ? '1 loop · ' : ''}${ferr ? '1 ferrous · ' : ''}1 sensor`);
-            toast(`Scene "${name}" loaded`, '+');
+            toast(isJa ? `シーン "${name}" を読み込みました` : `Scene "${name}" loaded`, '+');
           } },
         ],
       }) },
@@ -130,7 +130,7 @@ export class NvPalette extends LitElement {
           a.click();
           URL.revokeObjectURL(url);
           pushLog('ok', `proof bundle exported · ${blob.size} bytes`);
-          toast(`Proof bundle saved (${blob.size} B)`, '📦');
+          toast(isJa ? `証明バンドルを保存しました (${blob.size} B)` : `Proof bundle saved (${blob.size} B)`, '📦');
         } catch (e) { pushLog('err', `export failed: ${(e as Error).message}`); }
       } },
       { ico: '⟳', label: t('palette.resetPipeline', 'Reset pipeline'), kbd: `${modKey}R`, run: () => openModal({
@@ -138,7 +138,7 @@ export class NvPalette extends LitElement {
         body: `<p>${isJa ? 'フレームストリームをクリアし、時間 <code>t</code> を0に戻します。' : 'Clears the frame stream and rewinds <code>t</code> to 0.'}</p>`,
         buttons: [
           { label: isJa ? 'キャンセル' : 'Cancel', variant: 'ghost' },
-          { label: isJa ? 'リセット' : 'Reset', variant: 'danger', onClick: async () => { await getClient()?.reset(); pushLog('warn', 'pipeline reset · t=0'); toast('Pipeline reset', '⟳'); } },
+          { label: isJa ? 'リセット' : 'Reset', variant: 'danger', onClick: async () => { await getClient()?.reset(); pushLog('warn', 'pipeline reset · t=0'); toast(isJa ? 'パイプラインをリセットしました' : 'Pipeline reset', '⟳'); } },
         ],
       }) },
       { ico: '✓', label: t('palette.verifyWitness', 'Verify witness'), run: async () => {
@@ -148,19 +148,19 @@ export class NvPalette extends LitElement {
         const eb = new Uint8Array(32);
         for (let i = 0; i < 32; i++) eb[i] = parseInt(exp.slice(i * 2, i * 2 + 2), 16);
         const r = await c.verifyWitness(eb);
-        if (r.ok) { witnessVerified.value = 'ok'; witnessHex.value = exp; toast('Witness verified', '✓'); }
-        else { witnessVerified.value = 'fail'; toast('Witness mismatch!', '✗'); }
+        if (r.ok) { witnessVerified.value = 'ok'; witnessHex.value = exp; toast(isJa ? 'ウィトネス検証完了' : 'Witness verified', '✓'); }
+        else { witnessVerified.value = 'fail'; toast(isJa ? 'ウィトネス不一致エラー' : 'Witness mismatch!', '✗'); }
       } },
       { ico: '☼', label: t('palette.toggleTheme', 'Toggle theme'), kbd: `${modKey}/`, run: () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; } },
       { ico: '⚙', label: t('palette.openSettings', 'Open settings'), kbd: `${modKey},`, run: () => window.dispatchEvent(new CustomEvent('open-settings')) },
       { ico: '?', label: t('palette.shortcuts', 'Keyboard shortcuts…'), run: () => openModal({
         title: isJa ? 'キーボードショートカット一覧' : 'Keyboard shortcuts',
         body: `<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;">
-          <div><code>Ctrl K / ⌘K</code></div><div>${isJa ? 'コマンドパレット' : 'Command palette'}</div>
+          <div><code>Ctrl+K / ⌘K</code></div><div>${isJa ? 'コマンドパレット' : 'Command palette'}</div>
           <div><code>Space</code></div><div>${isJa ? '再生 / 一時停止' : 'Play / pause'}</div>
-          <div><code>Ctrl R / ⌘R</code></div><div>${isJa ? 'パイプラインをリセット' : 'Reset'}</div>
-          <div><code>Ctrl , / ⌘,</code></div><div>${isJa ? '環境設定' : 'Settings'}</div>
-          <div><code>Ctrl / / ⌘/</code></div><div>${isJa ? 'テーマ切替（ダーク/ライト）' : 'Toggle theme'}</div>
+          <div><code>Ctrl+R / ⌘R</code></div><div>${isJa ? 'パイプラインをリセット' : 'Reset'}</div>
+          <div><code>Ctrl+, / ⌘,</code></div><div>${isJa ? '環境設定' : 'Settings'}</div>
+          <div><code>Ctrl+/ / ⌘/</code></div><div>${isJa ? 'テーマ切替（ダーク/ライト）' : 'Toggle theme'}</div>
           <div><code>\`</code></div><div>${isJa ? 'デバッグHUD表示' : 'Debug HUD'}</div>
           <div><code>1 · 2 · 3</code></div><div>${isJa ? 'インスペクタータブ切替' : 'Inspector tabs'}</div>
           <div><code>Esc</code></div><div>${isJa ? 'モーダル / パレットを閉じる' : 'Close modal/palette'}</div>

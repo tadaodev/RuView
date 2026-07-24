@@ -426,15 +426,16 @@ export class NvHelp extends LitElement {
   }
 
   private renderGlossary() {
+    const isJa = getLocale() === 'ja';
     const items = this.filteredGlossary();
     return html`
-      <h2>Glossary</h2>
-      <p class="lead">Every piece of jargon in the dashboard, defined in one paragraph each.</p>
-      <input class="glossary-search" type="text" placeholder="Search 14 terms…"
+      <h2>${isJa ? '用語集 (Glossary)' : 'Glossary'}</h2>
+      <p class="lead">${isJa ? 'ダッシュボードで使用される主要な技術用語と解説。' : 'Every piece of jargon in the dashboard, defined in one paragraph each.'}</p>
+      <input class="glossary-search" type="text" placeholder=${isJa ? '用語を検索 (全14項目)…' : 'Search 14 terms…'}
         .value=${this.query}
         @input=${(e: Event) => this.query = (e.target as HTMLInputElement).value} />
       ${items.length === 0
-        ? html`<p style="color: var(--ink-3);">No terms match.</p>`
+        ? html`<p style="color: var(--ink-3);">${isJa ? '一致する用語が見つかりません。' : 'No terms match.'}</p>`
         : items.map((g) => html`
             <div class="term">
               <div class="head">
@@ -448,10 +449,12 @@ export class NvHelp extends LitElement {
   }
 
   private renderFaq() {
+    const isJa = getLocale() === 'ja';
+    const list = isJa ? FAQ_JA : FAQ_EN;
     return html`
-      <h2>FAQ</h2>
-      <p class="lead">The questions I was asked twice in the first week of demos.</p>
-      ${FAQ.map((item) => html`
+      <h2>${isJa ? 'よくある質問 (FAQ)' : 'FAQ'}</h2>
+      <p class="lead">${isJa ? 'デモや導入時によく寄せられる質問と回答。' : 'The questions I was asked twice in the first week of demos.'}</p>
+      ${list.map((item) => html`
         <div class="faq-item">
           <div class="q">${item.q}</div>
           <div class="a" .innerHTML=${item.a}></div>
@@ -461,11 +464,13 @@ export class NvHelp extends LitElement {
   }
 
   private renderShortcuts() {
+    const isJa = getLocale() === 'ja';
+    const list = isJa ? SHORTCUTS_JA : SHORTCUTS_EN;
     return html`
-      <h2>Keyboard shortcuts</h2>
-      <p class="lead">Everything is reachable without a mouse.</p>
+      <h2>${isJa ? 'キーボードショートカット' : 'Keyboard shortcuts'}</h2>
+      <p class="lead">${isJa ? 'マウスを使わずキーボードのみで全機能にアクセス可能です。' : 'Everything is reachable without a mouse.'}</p>
       <div class="shortcuts">
-        ${SHORTCUTS.map((s) => html`
+        ${list.map((s) => html`
           <kbd>${s.keys}</kbd><span>${s.label}</span>
         `)}
       </div>
@@ -473,6 +478,24 @@ export class NvHelp extends LitElement {
   }
 
   private renderAbout() {
+    const isJa = getLocale() === 'ja';
+    if (isJa) {
+      return html`
+        <h2>このダッシュボードについて</h2>
+        <p class="lead">nvsim ダッシュボードの設計思想と技術概要。</p>
+        <p><b>nvsim</b> は、窒素-空孔（NV）ダイヤモンド磁気センシングのための確定性順方向シミュレータです。
+          <code>v2/crates/nvsim</code> にあるRustクレートが核となっており、このダッシュボードはWeb Worker内でWebAssembly（WASM）として実行するVite + Litシングルページアプリケーションです。</p>
+        <p>最大の強みは<b>決定性（確定性）</b>です。同一の <code>(scene, config, seed)</code> 入力からは、
+          ブラウザ、OS、トランスポートの違いを問わずバイト単位で完全一致するSHA-256ウィトネス（証明）が生成されます。
+          Witnessタブの <kbd>ウィトネス検証</kbd> ボタンで実証できます。</p>
+        <p>コードベースはオープンソース（Apache-2.0 OR MIT）です。GitHubリポジトリ:
+          <code>github.com/ruvnet/RuView</code>。設計決定は ADR-089 (nvsim),
+          ADR-090 (Lindblad拡張), ADR-091 (サブTHzレーダー研究),
+          ADR-092 (本ダッシュボード), ADR-093 (UXギャップ分析) にドキュメント化されています。</p>
+        <p>本ダッシュボードはRuViewプラットフォームのデモの一つです。他のデモ（Observatory、Pose Fusion）は
+          <code>github.io/RuView/</code> で公開されています。</p>
+      `;
+    }
     return html`
       <h2>About this dashboard</h2>
       <p class="lead">What you're looking at, in one screen.</p>
@@ -492,10 +515,11 @@ export class NvHelp extends LitElement {
   }
 
   override render() {
+    const isJa = getLocale() === 'ja';
     return html`
       <div class="modal" role="dialog" aria-modal="true" aria-label="Help center">
         <div class="h">
-          <div class="ttl">Help</div>
+          <div class="ttl">${isJa ? 'ヘルプセンター' : 'Help'}</div>
           <button class="close" aria-label="Close help" @click=${() => this.close()}>×</button>
         </div>
         <nav class="nav" role="tablist" aria-label="Help sections">
@@ -503,11 +527,11 @@ export class NvHelp extends LitElement {
             <button class=${this.section === s ? 'on' : ''} role="tab"
               aria-selected=${this.section === s}
               @click=${() => this.section = s}>
-              ${s === 'quickstart' ? '🚀 Quickstart'
-                : s === 'glossary' ? '📖 Glossary'
-                : s === 'faq' ? '? FAQ'
-                : s === 'shortcuts' ? '⌨ Shortcuts'
-                : 'ℹ About'}
+              ${s === 'quickstart' ? (isJa ? '🚀 クイックスタート' : '🚀 Quickstart')
+                : s === 'glossary' ? (isJa ? '📖 用語集' : '📖 Glossary')
+                : s === 'faq' ? (isJa ? '? FAQ' : '? よくある質問')
+                : s === 'shortcuts' ? (isJa ? '⌨ ショートカット' : '⌨ Shortcuts')
+                : (isJa ? 'ℹ 概要' : 'ℹ About')}
             </button>
           `)}
         </nav>
@@ -519,7 +543,7 @@ export class NvHelp extends LitElement {
             : this.renderAbout()}
         </div>
         <div class="f">
-          <span>Press <kbd style="font-family:var(--mono);font-size:10.5px;padding:1px 4px;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;">?</kbd> any time to reopen</span>
+          <span>${isJa ? html`<kbd style="font-family:var(--mono);font-size:10.5px;padding:1px 4px;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;">?</kbd> キーでいつでもヘルプを再表示` : html`Press <kbd style="font-family:var(--mono);font-size:10.5px;padding:1px 4px;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;">?</kbd> any time to reopen`}</span>
           <span>nvsim · Apache-2.0 OR MIT</span>
         </div>
       </div>

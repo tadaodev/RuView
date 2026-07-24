@@ -522,8 +522,9 @@ function lookupKey(dict: TranslationDictionary, key: string): string | null {
 }
 
 export function detectDefaultLocale(): SupportedLocale {
-  if (typeof process !== 'undefined' && process.env && process.env.RUVIEW_LANG) {
-    const envLang = process.env.RUVIEW_LANG.toLowerCase();
+  const proc = (globalThis as any).process;
+  if (proc && proc.env && proc.env.RUVIEW_LANG) {
+    const envLang = String(proc.env.RUVIEW_LANG).toLowerCase();
     if (envLang.startsWith('ja')) return 'ja';
     if (envLang.startsWith('en')) return 'en';
   }

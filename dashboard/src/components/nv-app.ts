@@ -19,13 +19,49 @@ import './nv-settings-drawer';
 import './nv-onboarding';
 import './nv-ghost-murmur';
 import './nv-help';
-import './nv-home';
+import { openModal } from './nv-modal';
+import { toast } from './nv-toast';
+import { getClient, pushLog } from '../store/appStore';
+import { getLocale } from '../i18n';
 
 export type View = 'home' | 'scene' | 'apps' | 'inspector' | 'witness' | 'ghost-murmur';
 
 @customElement('nv-app')
 export class NvApp extends LitElement {
   @state() private view: View = 'home';
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener('keydown', this.onGlobalKeydown);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener('keydown', this.onGlobalKeydown);
+  }
+
+  private onGlobalKeydown = (e: KeyboardEvent): void => {
+    const isMod = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    const target = e.target as HTMLElement | null;
+    const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+
+    if (isMod && key === 'r' && !isInput) {
+      e.preventDefault();
+      const isJa = getLocale() === 'ja';
+      openModal({
+        title: isJa ? 'パイプラインをリセットしますか？' : 'Reset pipeline?',
+        body: `<p>${isJa ? 'フレームストリームをクリアし、時間 <code>t</code> を0に戻します。' : 'Clears the frame stream and rewinds <code>t</code> to 0.'}</p>`,
+        buttons: [
+          { label: isJa ? 'キャンセル' : 'Cancel', variant: 'ghost' },
+          { label: isJa ? 'リセット' : 'Reset', variant: 'danger', onClick: async () => { await getClient()?.reset(); pushLog('warn', 'pipeline reset · t=0'); toast(isJa ? 'パイプラインをリセットしました' : 'Pipeline reset', '⟳'); } },
+        ],
+      });
+    } else if (isMod && e.key === ',' && !isInput) {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent('open-settings'));
+    }
+  };
 
   static styles = css`
     :host {

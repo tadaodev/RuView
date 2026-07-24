@@ -21,6 +21,7 @@ import { kvGet, kvSet } from '../store/persistence';
 import { pushLog, activeAppIds, appEvents, appEventCounts } from '../store/appStore';
 import { hasRuntime } from '../store/appRuntimes';
 import { t, i18n } from '../i18n';
+import { toast } from './nv-toast';
 
 const activations = signal<AppActivation[]>(defaultActivations());
 const query = signal<string>('');
@@ -45,6 +46,7 @@ effect(() => {
 @customElement('nv-app-store')
 export class NvAppStore extends LitElement {
   @state() private renderTick = 0;
+  private _unsubI18n?: () => void;
 
   static styles = css`
     :host {
@@ -271,7 +273,7 @@ export class NvAppStore extends LitElement {
       if (!q) return true;
       return a.name.toLowerCase().includes(q)
         || a.summary.toLowerCase().includes(q)
-        || a.tags.some((t) => t.toLowerCase().includes(q));
+        || (a.tags?.some((t) => t.toLowerCase().includes(q)) ?? false);
     });
   }
 

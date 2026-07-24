@@ -137,6 +137,7 @@ export class NvSettingsDrawer extends LitElement {
   }
 
   override render() {
+    const isJa = i18n.getLocale() === 'ja';
     return html`
       <div class="scrim" @click=${() => this.close()}></div>
       <div class="panel" role="dialog" aria-modal="true" aria-label="${t('settings.title', 'Settings')}">
@@ -150,7 +151,7 @@ export class NvSettingsDrawer extends LitElement {
           <div class="row">
             <div>
               <div class="lbl">${t('ui.misc.language', 'Language')}</div>
-              <div class="desc">Select UI language (日本語 / English)</div>
+              <div class="desc">${isJa ? 'UI表示言語の選択 (日本語 / English)' : 'Select UI language (日本語 / English)'}</div>
             </div>
             <div class="seg">
               <button class=${i18n.getLocale() === 'ja' ? 'on' : ''}
@@ -162,7 +163,7 @@ export class NvSettingsDrawer extends LitElement {
           <div class="row">
             <div>
               <div class="lbl">${t('settings.theme', 'Theme')}</div>
-              <div class="desc">Dark is the default; light has higher contrast for daylight work.</div>
+              <div class="desc">${isJa ? '標準はダークモードです。ライトモードは明るい環境での作業に適しています。' : 'Dark is the default; light has higher contrast for daylight work.'}</div>
             </div>
             <div class="seg">
               <button class=${theme.value === 'dark' ? 'on' : ''}
@@ -174,7 +175,7 @@ export class NvSettingsDrawer extends LitElement {
           <div class="row">
             <div>
               <div class="lbl">${t('settings.density', 'Density')}</div>
-              <div class="desc">Affects panel padding and font scale (15 / 14 / 13 px). Choose what your eyes prefer.</div>
+              <div class="desc">${isJa ? 'パネルの余白とフォントサイズ（15 / 14 / 13 px）を調整します。' : 'Affects panel padding and font scale (15 / 14 / 13 px). Choose what your eyes prefer.'}</div>
             </div>
             <div class="seg">
               <button class=${density.value === 'comfy' ? 'on' : ''}
@@ -188,7 +189,7 @@ export class NvSettingsDrawer extends LitElement {
           <div class="row">
             <div>
               <div class="lbl">${t('settings.reduceMotion', 'Reduce motion')}</div>
-              <div class="desc">Stops the rotating diamond, animated field lines, and chart easing. Auto-on if your system has the prefers-reduced-motion preference set.</div>
+              <div class="desc">${isJa ? 'ダイヤモンドの回転や磁力線アニメーション、グラフ描画のアニメーションを停止します。' : 'Stops the rotating diamond, animated field lines, and chart easing. Auto-on if your system has the prefers-reduced-motion preference set.'}</div>
             </div>
             <span class="toggle ${motionReduced.value ? 'on' : ''}"
               role="switch" aria-checked=${motionReduced.value}
@@ -201,7 +202,7 @@ export class NvSettingsDrawer extends LitElement {
           <div class="row">
             <div>
               <div class="lbl">${t('settings.autoRerun', 'Auto-rerun on edit')}</div>
-              <div class="desc">When you change a Tunables slider or load a new scene, push the change to the worker without a manual restart.</div>
+              <div class="desc">${isJa ? 'パラメータ変更やシーン読込時に手動再起動なしでWorkerへ自動反映します。' : 'When you change a Tunables slider or load a new scene, push the change to the worker without a manual restart.'}</div>
             </div>
             <span class="toggle ${autoUpdate.value ? 'on' : ''}"
               role="switch" aria-checked=${autoUpdate.value}
@@ -214,7 +215,7 @@ export class NvSettingsDrawer extends LitElement {
           <div class="row">
             <div>
               <div class="lbl">${t('settings.mode', 'Mode')}</div>
-              <div class="desc">WASM runs nvsim in your browser (default, no server). WS connects to a host-supplied nvsim-server (REST + binary WebSocket); see ADR-092 §6.2.</div>
+              <div class="desc">${isJa ? 'WASMはブラウザ内でローカル実行（サーバー不要）。WSはnvsim-serverへ接続します。' : 'WASM runs nvsim in your browser (default, no server). WS connects to a host-supplied nvsim-server (REST + binary WebSocket); see ADR-092 §6.2.'}</div>
             </div>
             <div class="seg">
               <button class=${transport.value === 'wasm' ? 'on' : ''}
@@ -227,7 +228,7 @@ export class NvSettingsDrawer extends LitElement {
             <div class="row">
               <div>
                 <div class="lbl">WS URL</div>
-                <div class="desc">Where your nvsim-server is listening. The server defaults to 127.0.0.1:7878.</div>
+                <div class="desc">${isJa ? 'nvsim-serverの接続先URL（デフォルト 127.0.0.1:7878）。' : 'Where your nvsim-server is listening. The server defaults to 127.0.0.1:7878.'}</div>
               </div>
               <input type="text" placeholder="ws://localhost:7878" .value=${wsUrl.value}
                 @input=${(e: Event) => wsUrl.value = (e.target as HTMLInputElement).value} />
@@ -235,51 +236,51 @@ export class NvSettingsDrawer extends LitElement {
         </div>
 
         <div class="group">
-          <h4>Help</h4>
+          <h4>${isJa ? 'ヘルプ & リソース' : 'Help'}</h4>
           <div class="row">
             <div>
-              <div class="lbl">Open help center</div>
-              <div class="desc">Quickstart, glossary, FAQ, and shortcuts. Press <kbd style="font-family:var(--mono);font-size:10.5px;padding:1px 4px;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;">?</kbd> any time.</div>
+              <div class="lbl">${isJa ? 'ヘルプセンターを開く' : 'Open help center'}</div>
+              <div class="desc">${isJa ? html`クイックスタート、用語集、FAQ、ショートカット。<kbd style="font-family:var(--mono);font-size:10.5px;padding:1px 4px;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;">?</kbd> キーでいつでも表示。` : html`Quickstart, glossary, FAQ, and shortcuts. Press <kbd style="font-family:var(--mono);font-size:10.5px;padding:1px 4px;background:var(--bg-3);border:1px solid var(--line);border-radius:3px;">?</kbd> any time.`}</div>
             </div>
             <button class="seg"
               @click=${() => { this.close(); window.dispatchEvent(new CustomEvent('nv-show-help')); }}
               style="padding:6px 12px;cursor:pointer;background:var(--bg-3);border:1px solid var(--line);border-radius:6px;color:var(--ink);">
-              Open
+              ${isJa ? '開く' : 'Open'}
             </button>
           </div>
           <div class="row">
             <div>
-              <div class="lbl">Replay welcome tour</div>
-              <div class="desc">Re-show the 6-step first-run walkthrough.</div>
+              <div class="lbl">${isJa ? 'ウェルカムツアーを再開' : 'Replay welcome tour'}</div>
+              <div class="desc">${isJa ? '初回ガイドツアーを再表示します。' : 'Re-show the 6-step first-run walkthrough.'}</div>
             </div>
             <button class="seg"
               @click=${() => { this.close(); window.dispatchEvent(new CustomEvent('nv-show-tour')); }}
               style="padding:6px 12px;cursor:pointer;background:var(--bg-3);border:1px solid var(--line);border-radius:6px;color:var(--ink);">
-              Replay
+              ${isJa ? '再再生' : 'Replay'}
             </button>
           </div>
           <div class="row">
             <div>
               <div class="lbl">${t('settings.resetPrefs', 'Reset all preferences')}</div>
-              <div class="desc">Wipe theme, density, motion, scene drag positions, REPL history, and the onboarding-seen flag.</div>
+              <div class="desc">${isJa ? 'テーマ、密度、モーション、ドラッグ位置、履歴、初回ツアー設定をすべて初期化します。' : 'Wipe theme, density, motion, scene drag positions, REPL history, and the onboarding-seen flag.'}</div>
             </div>
             <button class="seg"
               @click=${() => this.resetPrefs()}
               style="padding:6px 12px;cursor:pointer;background:var(--bg-3);border:1px solid oklch(0.65 0.22 25 / 0.4);border-radius:6px;color:var(--bad);">
-              Reset
+              ${isJa ? 'リセット' : 'Reset'}
             </button>
           </div>
         </div>
 
         <div class="group">
-          <h4>About</h4>
+          <h4>${isJa ? '概要' : 'About'}</h4>
           <div class="row" style="border-bottom:0;">
             <div>
               <div class="lbl">nvsim · v0.3.0</div>
-              <div class="desc">Open-source NV-diamond simulator. Apache-2.0 OR MIT.<br>
+              <div class="desc">${isJa ? 'オープンソース NVダイヤモンド磁気シミュレータ。Apache-2.0 OR MIT。' : 'Open-source NV-diamond simulator. Apache-2.0 OR MIT.'}<br>
                 <a style="color:var(--accent-2); text-decoration:underline dotted; cursor:pointer;"
                   @click=${() => { this.close(); window.dispatchEvent(new CustomEvent('nv-show-help', { detail: { section: 'about' } })); }}>
-                  More info →
+                  ${isJa ? '詳細情報 →' : 'More info →'}
                 </a></div>
             </div>
           </div>

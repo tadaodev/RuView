@@ -113,7 +113,7 @@ export class CommandPalette {
     this.overlay.setAttribute('aria-label', 'Command palette');
     this.overlay.setAttribute('aria-modal', 'true');
 
-    const isJa = typeof window !== 'undefined' && window.i18n && window.i18n.locale === 'ja';
+    const isJa = typeof window !== 'undefined' && window.i18n ? window.i18n.locale === 'ja' : true;
     this.overlay.innerHTML = `
       <div class="cmd-palette">
         <div class="cmd-palette-input-wrap">
@@ -160,6 +160,8 @@ export class CommandPalette {
   show() {
     this.visible = true;
     this.overlay.classList.add('visible');
+    const isJa = typeof window !== 'undefined' && window.i18n ? window.i18n.locale === 'ja' : true;
+    this.input.placeholder = isJa ? 'コマンドの検索・実行... (Ctrl+K / ⌘K)' : 'Type a command... (Ctrl+K / ⌘K)';
     this.input.value = '';
     this.selectedIndex = 0;
     this.filteredCommands = [...this.commands];
