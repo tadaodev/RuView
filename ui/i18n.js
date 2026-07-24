@@ -133,6 +133,20 @@ const translations = {
     'observatory.desc.security_patrol': 'Multi-zone presence patrol with camera-free motion heatmaps.',
 
     // HUD panels
+    'observatory.group.core': 'Core Sensing',
+    'observatory.group.medical': 'Medical / Health',
+    'observatory.group.security': 'Security',
+    'observatory.group.retail': 'Building / Retail',
+    'observatory.group.disaster': 'Disaster / Tactical',
+
+    'observatory.preset.custom': 'Custom',
+    'observatory.preset.foundation': 'Foundation (Default)',
+    'observatory.preset.cinematic': 'Cinematic',
+    'observatory.preset.minimal': 'Minimal / Clean',
+    'observatory.preset.neon': 'Neon Glow',
+    'observatory.preset.tactical': 'Tactical / Military',
+    'observatory.preset.medical': 'Medical Monitor',
+
     'observatory.vitals.header': 'Vital Signs',
     'observatory.vitals.heartRate': 'Heart Rate',
     'observatory.vitals.respiration': 'Respiration',
@@ -331,6 +345,20 @@ const translations = {
     'observatory.desc.security_patrol': 'カメラ不使用の動線ヒートマップにより複数エリアの存在状態を監視します。',
 
     // HUD panels
+    'observatory.group.core': 'コア・センシング',
+    'observatory.group.medical': 'ヘルスケア・医療',
+    'observatory.group.security': '防犯・警備',
+    'observatory.group.retail': '施設・店舗・ビル',
+    'observatory.group.disaster': '災害救助・特殊',
+
+    'observatory.preset.custom': 'カスタム',
+    'observatory.preset.foundation': '標準（デフォルト）',
+    'observatory.preset.cinematic': 'シネマティック',
+    'observatory.preset.minimal': 'ミニマル（シンプル）',
+    'observatory.preset.neon': 'ネオングロー',
+    'observatory.preset.tactical': 'タクティカル（軍事・防犯）',
+    'observatory.preset.medical': 'メディカル（医療）',
+
     'observatory.vitals.header': 'バイタル測定（心拍・呼吸）',
     'observatory.vitals.heartRate': '心拍数',
     'observatory.vitals.respiration': '呼吸数',
@@ -506,7 +534,11 @@ export class I18n {
     // Translate elements with data-i18n attribute
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       const key = el.getAttribute('data-i18n');
-      el.textContent = this.t(key);
+      if (el.tagName && el.tagName.toLowerCase() === 'optgroup') {
+        el.label = this.t(key);
+      } else {
+        el.textContent = this.t(key);
+      }
     });
 
     // Translate placeholders

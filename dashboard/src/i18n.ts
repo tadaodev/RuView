@@ -603,6 +603,7 @@ export class I18nManager extends EventTarget {
 }
 
 export const i18n = new I18nManager();
+export const getLocale = (): SupportedLocale => i18n.getLocale();
 export const t = (key: string, fallbackOrParams?: string | Record<string, unknown>, params?: Record<string, unknown>): string =>
   i18n.t(key, fallbackOrParams, params);
 export const setLocale = (locale: SupportedLocale): void => i18n.setLocale(locale);

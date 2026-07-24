@@ -22,7 +22,9 @@ interface TourStep {
   hint?: string;
 }
 
-const STEPS: TourStep[] = [
+import { getLocale } from '../i18n';
+
+const STEPS_EN: TourStep[] = [
   {
     icon: '👋',
     title: 'Welcome to nvsim',
@@ -172,6 +174,102 @@ const STEPS: TourStep[] = [
     cta: { label: 'Get started →' },
   },
 ];
+
+const STEPS_JA: TourStep[] = [
+  {
+    icon: '👋',
+    title: 'nvsim へようこそ',
+    body: `<p style="font-size:14px; line-height:1.6;">
+        <b>nvsim</b> は、<b>窒素-空孔（NV）ダイヤモンド磁気センシング</b>のためのオープンソース・確定性順方向シミュレータです。RustクレートからWebAssembly（WASM）へコンパイルされ、現在ブラウザ上で高速動作しています。</p>
+      <p style="font-size:13px; color:var(--ink-2); line-height:1.55;">
+        この約60秒のガイダンスツアーでは、4つの主要パネル、アプリストア、Ghost Murmur研究ビュー、そしてnvsimの特徴である確定性証明（Witness）の仕組みを解説します。</p>
+      <p style="font-size:11.5px; color:var(--ink-3); line-height:1.5; margin-top:14px;">
+        いつでも <kbd>Esc</kbd> キーでスキップ可能です。ツアーは <b>設定 → ヘルプ</b> からいつでも再再生できます。</p>`,
+    cta: { label: 'ツアーを開始する →' },
+  },
+  {
+    icon: '🌐',
+    title: '3Dシーンキャンバス',
+    body: `<p>中央のメインパネルには<b>磁気空間シーン</b>が表示されています。4つの磁気源と中心のNVダイヤモンドセンサーで構成されています。</p>
+      <p>4つの球体（<b>鉄筋コイル</b>、<b>心拍プロキシ双極子</b>、<b>60Hz商用電源</b>、<b>スチール扉渦電流</b>）はマウスで直接ドラッグ移動できます。電波・磁場ラインがリアルタイムで各磁気源とセンサーを接続します。</p>
+      <p style="font-size:12.5px; color:var(--ink-3);">
+        左上ツールバー: 拡大/縮小、フィット、レイヤー表示切替。右下: シミュレーション操作（ステップ/再生/速度切り替え）。ドラッグ位置は次回起動時も保存されます。</p>`,
+    hint: 'ツアー終了後、心拍プロキシ（heart_proxy）をドラッグしてみてください。',
+  },
+  {
+    icon: '▶',
+    title: 'パイプラインの実行',
+    body: `<p>トップバーの <b>▶ 実行</b> ボタンを押すか、<kbd>Space</kbd> キーを押すと、リアルタイムフレームストリームが開始されます。x86_64 WASM上で約1.8 kHzの超高速で実行されます。</p>
+      <p>トップバーのFPS表示がリアルタイムスループットを計測します。右側インスペクターのBベクトル波形およびフレームストリームのスパークラインが即座に更新されます。</p>
+      <p style="font-size:12.5px; color:var(--ink-3);">
+        <kbd>Space</kbd> キーでいつでも実行/一時停止を切り替えられます。リセット (<kbd>⌘R</kbd>) はシード値を維持したまま時間 <code>t</code> を0に戻します。</p>`,
+  },
+  {
+    icon: '🔍',
+    title: 'インスペクター — 3つのタブと深度',
+    body: `<p>右側レールにはライブインスペクターが表示されます: <b>シグナル (Signal)</b>（Bベクトル波形 + スパークライン）、<b>フレーム (Frame)</b>（デコード済みMagFrame領域 + 60バイトヘックスダンプ）、<b>ウィトネス (Witness)</b>（SHA-256確定性検証ゲート）。</p>
+      <p>左側レールの<b>虫眼鏡アイコン</b>をクリックすると、インスペクターがメインエリアに拡大表示されます。<b>シールドアイコン</b>をクリックするとWitnessに特化した拡大表示が行われます。</p>
+      <p style="font-size:12.5px; color:var(--ink-3);">
+        数字キー <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> でどこからでも3つのインスペクタータブを瞬時に切り替えられます。</p>`,
+  },
+  {
+    icon: '✓',
+    title: 'Witness（確定性証明）— nvsimの独自性',
+    body: `<p>nvsimの最も重要な特徴: 同一の <code>(scene, config, seed)</code> ➔ 実行環境やマシンを問わずバイト単位で完全一致するSHA-256ハッシュを生成します。</p>
+      <p><b>Witness</b> タブを開き、<b>Verify witness（ウィトネス検証）</b> を押してください。標準参照シーン（<code>seed=42, N=256</code>）のハッシュを再計算し、コンパイル時に固定されたハッシュ値（<code style="font-size:10.5px;">cc8de9b01b0ff5bd…</code>）と完全一致することを証明します。</p>
+      <p>緑のチェックマークが表示されれば、物理定数（γ_e, D_GS, μ₀, T₂*）、PRNGストリーム、フレーム構造がすべて完全一致していることが担保されます。</p>`,
+  },
+  {
+    icon: '🎚',
+    title: 'チューナブルパラメータ — ライブ調整',
+    body: `<p>左サイドバーの <b>Tunables（パラメータ設定）</b> パネルには4つのスライダーがあります:</p>
+      <ul style="margin:0 0 12px; padding-left:18px; font-size:13px; color:var(--ink-2); line-height:1.6;">
+        <li><b>サンプリングレート</b> (1–100 kHz) — デジタイザのフレームレート</li>
+        <li><b>ロックイン f_mod</b> (0.1–5 kHz) — マイクロ波変調周波数</li>
+        <li><b>積分時間 t</b> (0.1–10 ms) — サンプルごとの積分時間</li>
+        <li><b>ショットノイズ</b> (オン/オフ) — 量子ノイズの切り替え</li>
+      </ul>
+      <p>スライダーを変更すると300msデバウンスののちWASMパイプラインが自動再構築されます。シグナル波形上のノイズフロアやBベクトルの広がり方の変化を確認できます。</p>`,
+  },
+  {
+    icon: '👻',
+    title: 'Ghost Murmur — 研究検証ビュー',
+    body: `<p>左レールのゴーストアイコンをクリックすると、公開論文に基づく心拍検出プログラムの物理的検証ビューが開きます。</p>
+      <p><b>「自分で試す」サンドボックス</b>が含まれており、心拍双極子をセンサーから任意の距離に配置して実行することで、実際のnvsimパイプラインが信号をどこまで復元できるかを検証できます。</p>`,
+  },
+  {
+    icon: '🛍',
+    title: 'App Store — 65種のエッジモジュール',
+    body: `<p>グリッドアイコンをクリックすると、<b>App Store</b> が開きます。RuViewが提供するホットロード可能なWASMエッジモジュールがカテゴリ別（医療、防犯・警備、スマートビル、店舗、産業、信号処理、学習、自律走行、特殊）に整理されています。</p>
+      <p>各カードにはID、カテゴリ、ステータス、計算バジェット、ADR参照番号が記載されています。トグルスイッチでセッション内での有効化を切り替えられます。</p>`,
+  },
+  {
+    icon: '⌨',
+    title: 'コンソール + REPLコマンドライン',
+    body: `<p>下部パネルには、5つのフィルタタブ（<b>すべて / 情報 / 警告 / エラー / デバッグ</b>）付きのログとREPLプロンプトがあります。</p>
+      <p>REPLコマンド例: <code>help</code>, <code>scene.list</code>, <code>sensor.config</code>, <code>run</code>, <code>pause</code>, <code>seed [hex]</code>, <code>proof.verify</code>, <code>status</code>, <code>clear</code> など。</p>
+      <p style="font-size:12.5px; color:var(--ink-3);">
+        どこからでも <kbd>/</kbd> キーを押すとREPLプロンプトにフォーカスします。<kbd>⌘K</kbd> でコマンドパレットが開きます。</p>`,
+  },
+  {
+    icon: '🚀',
+    title: '準備が完了しました',
+    body: `<p style="font-size:14px;">ツアーは以上です。いくつかの便利なショートカット:</p>
+      <ul style="margin:0 0 14px; padding-left:18px; font-size:13px; color:var(--ink-2); line-height:1.7;">
+        <li><kbd>?</kbd> キーでいつでもヘルプセンターを開けます（クイックスタート / 用語集 / FAQ / ショートカット）。</li>
+        <li><kbd>⌘K</kbd> でコマンドパレットを開きます。</li>
+        <li><kbd>\`</kbd> キーでデバッグHUDをトグル表示できます。</li>
+        <li>設定 (<kbd>⌘,</kbd>) でテーマ、表示密度、ツアーの再再生が可能です。</li>
+      </ul>
+      <p style="font-size:12.5px; color:var(--ink-3); line-height:1.55;">
+        リポジトリ: <code>github.com/ruvnet/RuView</code> · Apache-2.0 OR MIT</p>`,
+    cta: { label: 'ダッシュボードを開始する →' },
+  },
+];
+
+function getSteps(): TourStep[] {
+  return getLocale() === 'ja' ? STEPS_JA : STEPS_EN;
+}
 
 @customElement('nv-onboarding')
 export class NvOnboarding extends LitElement {
@@ -349,9 +447,10 @@ export class NvOnboarding extends LitElement {
   }
 
   private next(): void {
-    const s = STEPS[this.step];
+    const steps = getSteps();
+    const s = steps[this.step];
     s.cta?.run?.();
-    if (this.step < STEPS.length - 1) this.step++;
+    if (this.step < steps.length - 1) this.step++;
     else void this.dismiss();
   }
 
@@ -360,17 +459,19 @@ export class NvOnboarding extends LitElement {
   }
 
   override render() {
-    const s = STEPS[this.step];
-    const isLast = this.step === STEPS.length - 1;
+    const steps = getSteps();
+    const s = steps[this.step];
+    const isLast = this.step === steps.length - 1;
+    const isJa = getLocale() === 'ja';
     return html`
-      <div class="card" role="dialog" aria-modal="true" aria-label="Welcome tour">
+      <div class="card" role="dialog" aria-modal="true" aria-label=${isJa ? 'ウェルカムツアー' : 'Welcome tour'}>
         <div class="h">
           <div class="icon" aria-hidden="true">${s.icon}</div>
           <div class="title-wrap">
             <h2>${s.title}</h2>
-            <div class="step-label">Step ${this.step + 1} of ${STEPS.length}</div>
+            <div class="step-label">${isJa ? `ステップ ${this.step + 1} / ${steps.length}` : `Step ${this.step + 1} of ${steps.length}`}</div>
           </div>
-          <button class="skip" @click=${() => this.dismiss()} aria-label="Skip tour" title="Skip tour">×</button>
+          <button class="skip" @click=${() => this.dismiss()} aria-label=${isJa ? 'ツアーをスキップ' : 'Skip tour'} title=${isJa ? 'ツアーをスキップ' : 'Skip tour'}>×</button>
         </div>
         <div class="body">
           <div .innerHTML=${s.body}></div>
@@ -379,17 +480,17 @@ export class NvOnboarding extends LitElement {
         <div class="footer">
           <div class="progress">
             <div class="dots">
-              ${STEPS.map((_, i) => html`
+              ${steps.map((_, i) => html`
                 <div class="dot ${i === this.step ? 'active' : i < this.step ? 'done' : ''}"></div>
               `)}
             </div>
-            <div class="progress-label">${this.step + 1} / ${STEPS.length}</div>
+            <div class="progress-label">${this.step + 1} / ${steps.length}</div>
           </div>
           ${this.step > 0
-            ? html`<button class="ghost" @click=${() => this.prev()}>${t('onboarding.back', '← Back')}</button>`
-            : html`<button class="ghost" @click=${() => this.dismiss()}>${t('onboarding.skip', 'Skip')}</button>`}
+            ? html`<button class="ghost" @click=${() => this.prev()}>${t('onboarding.back', '← 戻る')}</button>`
+            : html`<button class="ghost" @click=${() => this.dismiss()}>${t('onboarding.skip', 'スキップ')}</button>`}
           <button class="primary" @click=${() => this.next()}>
-            ${s.cta?.label ?? (isLast ? t('onboarding.done', 'Done') : t('onboarding.next', 'Next →'))}
+            ${s.cta?.label ?? (isLast ? t('onboarding.done', '完了') : t('onboarding.next', '次へ →'))}
           </button>
         </div>
       </div>
