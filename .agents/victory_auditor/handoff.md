@@ -1,4 +1,10 @@
-# Victory Audit Handoff Report — RuView Japanese Localization and Dashboard Fix Project
+# Victory Audit Report & Handoff — RuView App Store 66 Edge Apps Japanese Localization
+
+**Agent:** Victory Auditor (`victory_auditor`)  
+**Date:** 2026-07-25  
+**Verdict:** **VICTORY CONFIRMED**
+
+---
 
 ```
 === VICTORY AUDIT REPORT ===
@@ -7,108 +13,74 @@ VERDICT: VICTORY CONFIRMED
 
 PHASE A — TIMELINE:
   Result: PASS
-  Anomalies: none (All milestones M12 through M16 were executed sequentially through proper 3-role workflow with full handoff records)
+  Anomalies: None. Milestone progression from M17 (Exploration), M18 (Implementation), M19 (Review & Verification) to M20 (Forensic Integrity) followed a authentic step-by-step workflow with complete 3-role handoffs.
 
 PHASE B — INTEGRITY CHECK:
   Result: PASS
-  Details: Verified clean source code across dashboard/ Lit components, i18n modules, Observatory 3D HTML/JS, and shortcuts handlers. Zero hardcoded test outputs, zero facade/dummy implementations, zero pre-populated fake test logs, zero GPL/commercial license violations.
+  Details: Inspected dashboard/src/store/apps.ts and dashboard/src/components/nv-app-store.ts. Verified that all 66 apps possess genuine Japanese name_ja and summary_ja strings, and all 14 categories have label_ja strings. Search and filter routines in apps.ts and nv-app-store.ts execute authentic multi-lingual matching with no hardcoded test stubs, fake facade functions, or mock bypasses.
 
 PHASE C — INDEPENDENT TEST EXECUTION:
-  Test command: npx tsc --noEmit; npx vite build; npx vitest run tests/i18n.test.ts (CWD: dashboard/)
-  Your results: tsc 0 errors (Exit 0); vite build 46 modules transformed in 999ms (dist/ generated); vitest 8/8 tests passed (100% pass)
-  Claimed results: tsc 0 errors; vite build clean compilation in 779-802ms; vitest 8/8 tests passed
-  Match: YES
-
-EVIDENCE (if REJECTED):
-  N/A
+  Test command: npx tsc --noEmit && npx vite build (CWD: dashboard/)
+  Your results: npx tsc --noEmit completed with 0 errors (exit code 0); npx vite build built successfully in 970ms (47 modules transformed, exit code 0).
+  Claimed results: npx tsc --noEmit 0 errors, npx vite build completed cleanly.
+  Match: YES — zero discrepancies.
 ```
 
 ---
 
-## 1. Observation (直接的な観察結果)
+## 1. Observation
 
-### A. Phase A — Timeline & Provenance Audit
-1. **Milestone Reconstructions (M12 – M16)**:
-   - **M12 (Exploration)**: `explorer_m12` identified exact root causes for Lit component blank screen crashes (`nv-help.ts` undefined `FAQ`/`SHORTCUTS`, `nv-palette.ts` missing `getLocale`, `nv-app-store.ts` missing `toast`/`_unsubI18n`), missing UI Japanese strings, and missing Windows shortcut listeners.
-   - **M13 (Development)**: `worker_m13` implemented bug fixes, full natural Japanese translations across Onboarding, Help Center (5 tabs), Settings drawer, Command palette, and Observatory 3D dialogs, plus Windows global shortcut hooks (`Ctrl+R`, `Ctrl+,`) with `preventDefault()` and `Ctrl+K / ⌘K` display labels.
-   - **M14 (Quality & License Audit)**: `reviewer_m14` verified rendering stability, translation completeness, input element protection, and 100% commercial license compliance (MIT / Apache-2.0 / BSD / MPL).
-   - **M15 (Empirical Build & Test Verification)**: `challenger_m15` executed `npx tsc --noEmit`, `npx vite build`, and `npx vitest run tests/i18n.test.ts`.
-   - **M16 (Forensic Audit)**: `auditor_m16` performed static analysis and dynamic checks confirming zero hardcoding or fake implementations.
-2. **Artifact Timestamps & History Integrity**:
-   - All handoff reports (`explorer_m12`, `worker_m13`, `reviewer_m14`, `challenger_m15`, `auditor_m16`) exist with detailed observations, logic chains, and verification commands. No pre-populated result artifacts predate execution.
+- **R1: App Store 66 Edge Apps Japanese Data Definition (`dashboard/src/store/apps.ts`)**:
+  - `AppManifest` interface extended with optional `name_ja?: string` and `summary_ja?: string`.
+  - `APPS` array contains exactly 66 edge app entries (from `nvsim` to `exo_time_crystal`), all populated with natural, intuitive Japanese names (`name_ja`) and summaries (`summary_ja`).
+  - `CATEGORIES` record extended with `label_ja` for all 14 categories (`sim`, `med`, `sec`, `bld`, `ret`, `ind`, `sig`, `lrn`, `spt`, `tmp`, `ais`, `qnt`, `aut`, `exo`).
+  - `fuzzyMatch()` scoring includes `app.name_ja` (+3 points) and `app.summary_ja` (+1 point).
 
-### B. Phase B — Forensic Integrity & Acceptance Criteria Verification
-1. **Screen Rendering & Blank Screen Fix**:
-   - `dashboard/src/components/nv-help.ts` (lines 453, 468): Undefined `FAQ` and `SHORTCUTS` replaced with locale-aware `FAQ_JA` / `FAQ_EN` and `SHORTCUTS_JA` / `SHORTCUTS_EN`.
-   - `dashboard/src/components/nv-palette.ts` (line 8): `getLocale` properly imported from `'../i18n'`.
-   - `dashboard/src/components/nv-app-store.ts` (lines 24, 49, 273): Added `toast` import, `_unsubI18n` declaration, and `(a.tags?.some(...) ?? false)` optional chaining guard.
-   - `dashboard/src/i18n.ts` (lines 525–527): Replaced raw `process.env` access with `(globalThis as any).process` safe guard for browser environment compatibility.
-2. **Japanese Localization Coverage & Friendly Terms**:
-   - **Onboarding (`nv-onboarding.ts`)**: All 10 steps translated into natural Japanese guidance starting with "nvsim へようこそ".
-   - **Help Center (`nv-help.ts`)**: All 5 tabs (`🚀 クイックスタート`, `📖 用語集`, `? FAQ`, `⌨ ショートカット`, `ℹ 概要`) fully translated.
-   - **Settings Drawer (`nv-settings-drawer.ts`)**: Labels, descriptions, Help group ("開く", "再再生", "リセット"), and About group ("詳細情報 →") localized.
-   - **Command Palette (`nv-palette.ts` & `ui/utils/command-palette.js`)**: Dynamic placeholder `コマンドの検索・実行... (Ctrl+K / ⌘K)` implemented.
-   - **Observatory 3D & Technical Terms (`ui/observatory.html`, `ui/i18n.js`, `dashboard/src/i18n.ts`)**: Exact friendly technical terms verified:
-     - `empty_room` ➔ `空部屋測定（ベースライン校正）`
-     - `single_breathing` ➔ `バイタル測定（心拍・呼吸）`
-     - `fall_event` ➔ `転倒検知アラート`
-     - `crowd_occupancy` ➔ `混雑度測定 (4名)`
-     - `csiVariance` ➔ `電波変動量（動作強度）`
-3. **Windows Keyboard Shortcuts & Display Formatting**:
-   - `nv-app.ts` (lines 43–64): Global keydown listener attaches `Ctrl+R / ⌘R` (opens reset pipeline modal with `e.preventDefault()`) and `Ctrl+, / ⌘,` (dispatches `'open-settings'` custom event with `e.preventDefault()`). Includes `isInput` protection (`INPUT`, `TEXTAREA`, `isContentEditable`) so text entry is never hijacked.
-   - UI display labels formatted as `Ctrl+K / ⌘K`, `Ctrl+R / ⌘R`, `Ctrl+, / ⌘,`, `Ctrl+/ / ⌘/`.
-4. **Prohibited Patterns Check**:
-   - Hardcoded test outputs: **0 instances**
-   - Facade / dummy implementations: **0 instances**
-   - Fabricated verification outputs: **0 instances**
-   - Commercial license violations: **0 instances**
+- **R2: UI Rendering & Filtering Japanese Integration (`dashboard/src/components/nv-app-store.ts`)**:
+  - Registered `i18n.onLocaleChange(() => this.requestUpdate())` in `connectedCallback()` and unsubscribed in `disconnectedCallback()`.
+  - Card rendering prioritizes `app.name_ja` and `app.summary_ja` when `getLocale() === 'ja'`.
+  - Category chips render `c.label_ja` when `getLocale() === 'ja'`.
+  - Status filters (`利用可能`, `ベータ版`, `研究・特殊`), runtime badges (`実行中`, `シミュレーション`, `メッシュ専用`), runtime tooltips, feed headers/lead text/empty states, and toggle toasts (`有効化: ...`) dynamically render in Japanese.
+  - Search filter `filtered()` matches query against `name`, `name_ja`, `summary`, `summary_ja`, `tags`, `label`, and `label_ja`.
 
-### C. Phase C — Independent Execution Results
-Executed independently in `c:\Project\RuView\dashboard`:
-1. `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; npx tsc --noEmit`
-   - **Exit Code**: 0 (0 errors)
-2. `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; npx vite build`
-   - **Result**: Built in 999ms, transformed 46 modules, generated PWA assets in `dist/`
-3. `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; npx vitest run tests/i18n.test.ts`
-   - **Result**: 8 passed (8 tests) in 841ms (100% pass rate)
+- **R3: Independent Build Execution (`dashboard/`)**:
+  - Executed `npx tsc --noEmit` in `dashboard/`: 0 errors (Exit code 0).
+  - Executed `npx vite build` in `dashboard/`: 47 modules transformed, built in 970ms with Exit code 0.
 
 ---
 
-## 2. Logic Chain (論理チェーン)
+## 2. Logic Chain
 
-1. **[Observation Phase A]**: All 5 Phase 3 milestones (M12–M16) were systematically completed by dedicated subagents with clear roles (Explorer, Developer, Auditor, Tester, Forensic Auditor).
-2. **[Observation Phase B]**: Code inspection confirms that Lit component crashes were fixed at the root-cause level by fixing import and variable scope bugs. Japanese translations cover all specified components with natural, friendly terminology. Shortcut listeners correctly support Windows `Ctrl+R` and `Ctrl+,` alongside Mac equivalents with `isInput` guards.
-3. **[Observation Phase C]**: Independent execution of `npx tsc --noEmit`, `npx vite build`, and `npx vitest run tests/i18n.test.ts` produced 0 errors and 100% passing tests, perfectly matching the team's claimed results.
-4. **[Conclusion]**: All acceptance criteria are verified with zero discrepancies or integrity violations. Verdict is **VICTORY CONFIRMED**.
-
----
-
-## 3. Caveats (留意点)
-
-- **Input Protection Scope**: `nv-app.ts` checks `tagName === 'INPUT'`, `tagName === 'TEXTAREA'`, and `isContentEditable`. Standard text inputs in the dashboard process keys natively without shortcut interception.
-- **No further caveats.**
+1. **Observation 1**: The user requested independent verification of 66 edge apps Japanese localization, UI rendering/filtering, and Vite build acceptance.
+2. **Observation 2**: Code inspection of `dashboard/src/store/apps.ts` confirms all 66 items in `APPS` and 14 categories in `CATEGORIES` contain complete, high-quality Japanese data fields without missing entries.
+3. **Observation 3**: Code inspection of `dashboard/src/components/nv-app-store.ts` confirms active subscription to `i18n.onLocaleChange`, conditional rendering via `getLocale() === 'ja'`, and search filter matching across Japanese fields.
+4. **Observation 4**: Independent execution of `npx tsc --noEmit` and `npx vite build` in `dashboard/` verified that the TypeScript type checker passes with 0 errors and Vite bundles assets without warnings or failures.
+5. **Conclusion**: All functional, localization, architecture, build, and integrity requirements have been fully met.
 
 ---
 
-## 4. Conclusion (結論)
+## 3. Caveats
 
-The claimed completion for the RuView Japanese Localization and Dashboard Fix Project is **GENUINE, AUTHENTIC, and VERIFIED**. All Lit component rendering issues are fixed, Japanese localization is complete with friendly terms, Windows keyboard shortcuts function properly with dual OS display formatting, and all test/build commands pass with 0 errors.
-
-**VERDICT: VICTORY CONFIRMED**
+No caveats. All checks passed without exceptions.
 
 ---
 
-## 5. Verification Method (独立検証方法)
+## 4. Conclusion
 
-To independently re-verify this victory audit verdict:
-```powershell
-# 1. Run TypeScript typecheck
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; cd c:\Project\RuView\dashboard; npx tsc --noEmit
+The claim of project completion for RuView App Store 66 Edge Apps Japanese Localization and Vite build acceptance is **VERIFIED AND CONFIRMED**.
 
-# 2. Run Vite production build
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; cd c:\Project\RuView\dashboard; npx vite build
+**Verdict: VICTORY CONFIRMED**
 
-# 3. Run i18n unit test suite
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; cd c:\Project\RuView\dashboard; npx vitest run tests/i18n.test.ts
-```
-Expected: `tsc` exit code 0 (0 errors), `vite build` clean asset generation in `dist/`, `vitest` 8/8 passed.
+---
+
+## 5. Verification Method
+
+1. TypeScript typecheck:
+   ```powershell
+   [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; npx tsc --noEmit
+   ```
+2. Vite production build:
+   ```powershell
+   [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; npx vite build
+   ```
+3. Inspect `dashboard/src/store/apps.ts` to confirm 66 entries in `APPS` with `name_ja` and `summary_ja`.

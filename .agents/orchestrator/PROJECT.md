@@ -23,8 +23,10 @@ Localization requires translating UI elements, README/documentation, and CLI/log
 | M14 | R2: Code Quality, UI & License Audit (Auditor) | System quality audit, regression verification, UI translation check, license compliance | M13 | DONE |
 | M15 | R3: Build & Operational Verification (Tester) | Execute `npx vite build` in `dashboard/` (0 errors), run test suites, verify operation | M13 | DONE |
 | M16 | R4: Final Forensic Integrity Audit | Forensic audit for zero hardcoding/fake implementations across component fixes and shortcuts | M14, M15 | DONE |
-
-
+| M17 | Phase 4 Baseline Exploration & App Store Inspection | Inspect all 66 edge apps in `dashboard/src/store/apps.ts` and `dashboard/src/components/nv-app-store.ts`, category definitions, search/filter behavior | M16 | DONE |
+| M18 | R1 & R2: App Store Edge Apps Japanese Localization & UI Integration | Define `name_ja`, `summary_ja`, Japanese category mapping for all 66 apps, update `nv-app-store.ts` for Japanese priority rendering & filter handling | M17 | IN_PROGRESS |
+| M19 | R3: Quality Review & Vite Build Verification | Code review & run `npx vite build` in `dashboard/` to verify zero type errors or build failures | M18 | PLANNED |
+| M20 | R4: Final Forensic Integrity Audit | Forensic audit verifying complete 66 app Japanese localization without hardcoded stubs or fake outputs | M19 | PLANNED |
 
 ## Interface Contracts & Guidelines
 - Commercial License Compliance: NO non-commercial or paid dependencies (GPL/AGPL/CC-NC forbidden for commercial use, Apache-2.0 / MIT / BSD / CC-BY allowed).
@@ -33,4 +35,8 @@ Localization requires translating UI elements, README/documentation, and CLI/log
 - Dashboard Lit Component Fixes: Ensure clean rendering of `nv-app`, `nv-help`, `nv-palette`, `nv-onboarding`, `nv-settings-drawer` without blank screen errors.
 - Complete Localization: Onboarding ("Welcome to nvsim"), Help Center (all 5 tabs), Settings drawer, Command palette, Observatory 3D select boxes & dialogs fully translated into natural Japanese.
 - Windows Shortcuts & Labels: `Ctrl+K`, `Ctrl+R`, `Ctrl+,` supported alongside `⌘K`, `⌘R`, `⌘,`; labels displayed as `Ctrl+K / ⌘K`.
+- App Store Localization (66 Edge Apps):
+  - `APPS` array in `dashboard/src/store/apps.ts`: extend all 66 apps with `name_ja` and natural, intuitive `summary_ja`.
+  - Categories localized (医療, 防犯・警備, スマートビル, 店舗・商業, 産業, 信号処理, オンライン学習, 空間・グラフ, 時相ロジック, AIセーフティ, 量子信号, 自律走行・メッシュ, 研究・特殊, シミュレータ).
+  - `dashboard/src/components/nv-app-store.ts`: preferential rendering of `name_ja` / `summary_ja` when `locale === 'ja'`, search query matching on both `name`/`summary` and `name_ja`/`summary_ja`, category filter chips mapped to Japanese titles properly.
 - Build Acceptance: `npx vite build` in `dashboard/` must compile cleanly with 0 errors.

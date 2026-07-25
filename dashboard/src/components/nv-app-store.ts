@@ -20,7 +20,7 @@ import {
 import { kvGet, kvSet } from '../store/persistence';
 import { pushLog, activeAppIds, appEvents, appEventCounts } from '../store/appStore';
 import { hasRuntime } from '../store/appRuntimes';
-import { t, i18n } from '../i18n';
+import { t, i18n, getLocale } from '../i18n';
 import { toast } from './nv-toast';
 
 const activations = signal<AppActivation[]>(defaultActivations());
@@ -251,15 +251,17 @@ export class NvAppStore extends LitElement {
   }
 
   private toggle(app: AppManifest): void {
+    const isJa = getLocale() === 'ja';
     const wasActive = this.isActive(app.id);
     const next = activations.value.map((a) => a.id === app.id ? { ...a, active: !a.active, lastActivatedAt: Date.now() } : a);
     activations.value = next;
     if (!wasActive) {
       const r = app.runtime ?? 'mesh-only';
-      const note = r === 'simulated' ? ' · live runtime engaged'
-        : r === 'running' ? ' · platform kernel'
-        : ' · mesh transport required';
-      toast(`Activated ${app.name}${note}`, '✦');
+      const note = r === 'simulated' ? (isJa ? ' · ライブランタイム有効' : ' · live runtime engaged')
+        : r === 'running' ? (isJa ? ' · プラットフォームカーネル' : ' · platform kernel')
+        : (isJa ? ' · メッシュ転送が必要' : ' · mesh transport required');
+      const appName = isJa && app.name_ja ? app.name_ja : app.name;
+      toast(`${isJa ? '有効化: ' : 'Activated '}${appName}${note}`, '✦');
     }
   }
 
@@ -271,9 +273,16 @@ export class NvAppStore extends LitElement {
       if (cat !== 'all' && a.category !== cat) return false;
       if (st !== 'all' && a.status !== st) return false;
       if (!q) return true;
-      return a.name.toLowerCase().includes(q)
-        || a.summary.toLowerCase().includes(q)
-        || (a.tags?.some((t) => t.toLowerCase().includes(q)) ?? false);
+      const catObj = CATEGORIES[a.category];
+      return (
+        a.name.toLowerCase().includes(q) ||
+        (a.name_ja && a.name_ja.toLowerCase().includes(q)) ||
+        a.summary.toLowerCase().includes(q) ||
+        (a.summary_ja && a.summary_ja.toLowerCase().includes(q)) ||
+        (a.tags?.some((t) => t.toLowerCase().includes(q)) ?? false) ||
+        catObj.label.toLowerCase().includes(q) ||
+        (catObj.label_ja && catObj.label_ja.toLowerCase().includes(q))
+      );
     });
   }
 
@@ -285,6 +294,7 @@ export class NvAppStore extends LitElement {
   }
 
   override render() {
+    const isJa = getLocale() === 'ja';
     const list = this.filtered();
     const counts = this.categoryCounts();
     const activeCount = activations.value.filter((a) => a.active).length;
@@ -292,7 +302,7 @@ export class NvAppStore extends LitElement {
       <div class="head">
         <div class="ttl">
           ${t('appstore.title', 'App Store')}
-          <small>${APPS.length} edge apps · ${activeCount} active</small>
+          <small>${APPS.length} ${isJa ? '個のエッジアプリ' : 'edge apps'} · ${activeCount} ${isJa ? '個が有効' : 'active'}</small>
         </div>
         <input class="search" id="app-search" placeholder="${t('appstore.searchPlaceholder', 'Search by name, tag, or category…')}"
           .value=${query.value}
@@ -304,49 +314,63 @@ export class NvAppStore extends LitElement {
           @click=${() => activeCat.value = 'all'}>
           ${t('appstore.all', 'All')}<span class="count">${counts.all}</span>
         </span>
-        ${(Object.keys(CATEGORIES) as AppCategory[]).map((k) => html`
-          <span class="chip ${activeCat.value === k ? 'on' : ''}"
-            @click=${() => activeCat.value = k}>
-            <span class="swatch" style=${`background:${CATEGORIES[k].color}`}></span>
-            ${CATEGORIES[k].label}
-            <span class="count">${counts[k] ?? 0}</span>
-          </span>
-        `)}
+        ${(Object.keys(CATEGORIES) as AppCategory[]).map((k) => {
+          const c = CATEGORIES[k];
+          const label = isJa && c.label_ja ? c.label_ja : c.label;
+          return html`
+            <span class="chip ${activeCat.value === k ? 'on' : ''}"
+              @click=${() => activeCat.value = k}>
+              <span class="swatch" style=${`background:${c.color}`}></span>
+              ${label}
+              <span class="count">${counts[k] ?? 0}</span>
+            </span>
+          `;
+        })}
         <span style="flex:1; min-width:8px"></span>
-        <span class="chip ${statusFilter.value === 'all' ? 'on' : ''}" @click=${() => statusFilter.value = 'all'}>any</span>
-        <span class="chip ${statusFilter.value === 'available' ? 'on' : ''}" @click=${() => statusFilter.value = 'available'}>available</span>
-        <span class="chip ${statusFilter.value === 'beta' ? 'on' : ''}" @click=${() => statusFilter.value = 'beta'}>beta</span>
-        <span class="chip ${statusFilter.value === 'research' ? 'on' : ''}" @click=${() => statusFilter.value = 'research'}>research</span>
+        <span class="chip ${statusFilter.value === 'all' ? 'on' : ''}" @click=${() => statusFilter.value = 'all'}>${isJa ? 'すべて' : 'any'}</span>
+        <span class="chip ${statusFilter.value === 'available' ? 'on' : ''}" @click=${() => statusFilter.value = 'available'}>${isJa ? '利用可能' : 'available'}</span>
+        <span class="chip ${statusFilter.value === 'beta' ? 'on' : ''}" @click=${() => statusFilter.value = 'beta'}>${isJa ? 'ベータ版' : 'beta'}</span>
+        <span class="chip ${statusFilter.value === 'research' ? 'on' : ''}" @click=${() => statusFilter.value = 'research'}>${isJa ? '研究・特殊' : 'research'}</span>
       </div>
 
       ${this.renderEventsFeed()}
 
       ${list.length === 0
-        ? html`<div class="empty">No apps match the current filters.</div>`
+        ? html`<div class="empty">${isJa ? '該当するアプリが見つかりません。' : 'No apps match the current filters.'}</div>`
         : html`<div class="grid">${list.map((app) => this.card(app))}</div>`}
     `;
   }
 
   private renderEventsFeed() {
+    const isJa = getLocale() === 'ja';
     const evs = appEvents.value.slice(-12).reverse();
     const activeSimCount = activations.value.filter((a) => a.active && hasRuntime(a.id)).length;
     return html`
       <div class="events-feed">
-        <h3>Live runtime feed
+        <h3>${isJa ? 'ライブランタイムフィード' : 'Live runtime feed'}
           ${activeSimCount > 0
-            ? html`<span class="card-events-count" style="margin-left: 8px;">${activeSimCount} simulated app${activeSimCount === 1 ? '' : 's'} active</span>`
+            ? html`<span class="card-events-count" style="margin-left: 8px;">${activeSimCount} ${isJa ? '個のシミュレーションアプリが動作中' : `simulated app${activeSimCount === 1 ? '' : 's'} active`}</span>`
             : ''}
         </h3>
         <p class="lead">
-          Apps with the <span class="badge rt-simulated" style="font-size:9.5px; padding:0 4px;">simulated</span>
-          runtime emit real i32 event IDs against nvsim's live frame stream below.
-          Apps with <span class="badge rt-mesh-only" style="font-size:9.5px; padding:0 4px;">mesh-only</span>
-          need an ESP32-S3 + WS transport (deferred to V2). The
-          <span class="badge rt-running" style="font-size:9.5px; padding:0 4px;">running</span>
-          badge marks <code>nvsim</code> itself, which is always running.
+          ${isJa ? html`
+            <span class="badge rt-simulated" style="font-size:9.5px; padding:0 4px;">シミュレーション</span>
+            バッジのアプリは、以下の nvsim ライブフレームストリームに対して実際の i32 イベントIDを発行します。
+            <span class="badge rt-mesh-only" style="font-size:9.5px; padding:0 4px;">メッシュ専用</span>
+            アプリは ESP32-S3 + WS トランスポートが必要です。
+            <span class="badge rt-running" style="font-size:9.5px; padding:0 4px;">実行中</span>
+            バッジは常に実行されている <code>nvsim</code> 自体を示します。
+          ` : html`
+            Apps with the <span class="badge rt-simulated" style="font-size:9.5px; padding:0 4px;">simulated</span>
+            runtime emit real i32 event IDs against nvsim's live frame stream below.
+            Apps with <span class="badge rt-mesh-only" style="font-size:9.5px; padding:0 4px;">mesh-only</span>
+            need an ESP32-S3 + WS transport (deferred to V2). The
+            <span class="badge rt-running" style="font-size:9.5px; padding:0 4px;">running</span>
+            badge marks <code>nvsim</code> itself, which is always running.
+          `}
         </p>
         ${evs.length === 0
-          ? html`<div class="ev-empty">No events yet. Toggle a card with the <i>simulated</i> badge and press <b>▶ Run</b>.</div>`
+          ? html`<div class="ev-empty">${isJa ? html`イベントはまだありません。<i>シミュレーション</i> バッジ付きカードをトグルして <b>▶ Run</b> を押してください。` : html`No events yet. Toggle a card with the <i>simulated</i> badge and press <b>▶ Run</b>.`}</div>`
           : html`<div class="lines">${evs.map((ev) => {
               const dt = new Date(ev.ts);
               const ts = `${String(dt.getSeconds()).padStart(2, '0')}.${String(dt.getMilliseconds()).padStart(3, '0')}`;
@@ -363,16 +387,37 @@ export class NvAppStore extends LitElement {
   }
 
   private card(app: AppManifest) {
+    const isJa = getLocale() === 'ja';
     const active = this.isActive(app.id);
     const cat = CATEGORIES[app.category];
+    const catLabel = isJa && cat.label_ja ? cat.label_ja : cat.label;
+    const name = isJa && app.name_ja ? app.name_ja : app.name;
+    const summary = isJa && app.summary_ja ? app.summary_ja : app.summary;
     const runtime = app.runtime ?? 'mesh-only';
     const evCount = appEventCounts.value[app.id] ?? 0;
-    const runtimeLabel: Record<string, string> = {
+    const runtimeLabel: Record<string, string> = isJa ? {
+      'running': '実行中',
+      'simulated': 'シミュレーション',
+      'mesh-only': 'メッシュ専用',
+    } : {
       'running': 'running',
       'simulated': 'simulated',
       'mesh-only': 'needs mesh',
     };
-    const runtimeTip: Record<string, string> = {
+    const statusLabel: Record<string, string> = isJa ? {
+      'available': '利用可能',
+      'beta': 'ベータ版',
+      'research': '研究・特殊',
+    } : {
+      'available': 'available',
+      'beta': 'beta',
+      'research': 'research',
+    };
+    const runtimeTip: Record<string, string> = isJa ? {
+      'running': 'このアプリは現在ブラウザ上で実際に動作しています。',
+      'simulated': 'nvsimのライブ磁気フレームストリームに対して簡易版アルゴリズムを実行します。トグルをONにして▶ Runを押すとフィードにリアルタイムイベントが表示されます。',
+      'mesh-only': 'このアルゴリズムはESP32-S3メッシュからのCSIサブキャリアデータを必要とします。トグル選択は保持され、接続時にWSトランスポート経由でプッシュされます。',
+    } : {
       'running': 'This app is genuinely running in your browser right now.',
       'simulated': 'A pared-down version of this algorithm runs against nvsim\'s magnetic frame stream as a proxy for its native CSI input. Toggle on, then press ▶ Run to see real event IDs in the feed.',
       'mesh-only': 'This algorithm needs CSI subcarrier data from an ESP32-S3 mesh. The toggle persists; activation is pushed via WS transport (V2).',
@@ -381,12 +426,12 @@ export class NvAppStore extends LitElement {
       <div class="card ${active ? 'active' : ''}" data-app-id=${app.id}>
         <div class="card-h">
           <span class="swatch" style=${`background:${cat.color}`}></span>
-          <span class="name">${app.name}</span>
+          <span class="name">${name}</span>
         </div>
-        <div class="summary">${app.summary}</div>
+        <div class="summary">${summary}</div>
         <div class="meta">
-          <span class="badge cat">${cat.label}</span>
-          <span class="badge status-${app.status}">${app.status}</span>
+          <span class="badge cat">${catLabel}</span>
+          <span class="badge status-${app.status}">${statusLabel[app.status] ?? app.status}</span>
           <span class="badge rt-${runtime}" title=${runtimeTip[runtime]}>${runtimeLabel[runtime]}</span>
           ${app.budget ? html`<span class="badge budget">budget ${app.budget}</span>` : ''}
           ${app.adr ? html`<span class="badge">${app.adr}</span>` : ''}
