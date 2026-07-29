@@ -476,22 +476,25 @@ class Observatory {
   // async: `/ws/sensing` is gated (ADR-272); mint a single-use ticket first.
   async _connectWS(url) {
     this._disconnectWS();
-    let wsUrl = url;
-    try { wsUrl = await withWsTicket(url); } catch { /* auth off or pre-ADR-272 server */ }
+    const host = window.location.hostname || '127.0.0.1';
+    let targetUrl = url || `ws://${host}:8765`;
+    let wsUrl = targetUrl;
+    try { wsUrl = await withWsTicket(targetUrl); } catch { /* auth off or pre-ADR-272 server */ }
     try {
       this._ws = new WebSocket(wsUrl);
       this._ws.onopen = () => {
-        console.log('[Observatory] WebSocket connected');
+        console.log('[Observatory] WebSocket connected to', wsUrl);
         this._hud.updateSourceBadge('ws', this._ws);
       };
       this._ws.onmessage = (evt) => { try { this._liveData = JSON.parse(evt.data); } catch {} };
       this._ws.onclose = () => {
-        console.log('[Observatory] WebSocket closed, falling back to demo');
+        console.log('[Observatory] WebSocket closed');
         this._ws = null;
-        this.settings.dataSource = 'demo';
         this._hud.updateSourceBadge('demo', null);
       };
-      this._ws.onerror = () => {};
+      this._ws.onerror = (err) => {
+        console.warn('[Observatory] WebSocket connection error:', err);
+      };
     } catch {}
   }
 

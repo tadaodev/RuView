@@ -249,7 +249,8 @@ export class HudController {
       dsSel.value = val;
       if (dsQuickSel) dsQuickSel.value = val;
       document.getElementById('ws-url-row').style.display = val === 'ws' ? 'flex' : 'none';
-      if (val === 'ws' && s.wsUrl) obs._connectWS(s.wsUrl);
+      const wsTarget = s.wsUrl || `ws://${window.location.hostname || '127.0.0.1'}:8765`;
+      if (val === 'ws') obs._connectWS(wsTarget);
       else obs._disconnectWS();
       this.updateSourceBadge(val, obs._ws);
       this.saveSettings();
