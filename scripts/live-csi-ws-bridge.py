@@ -6,8 +6,8 @@ Bridges live ESP32-S3 UDP CSI packets (port 5005) directly to WebSocket clients 
 and HTTP /health endpoint for RuView Observatory 3D & Vite Dashboard.
 Features:
 - Subcarrier Amplitude Normalization (cancel Wi-Fi AGC gain jumps)
-- Sliding Window Temporal Variance (20 frames ~ 1.0s window)
-- Hysteresis & Debouncing to prevent person count flickering
+- Sliding Window Temporal Variance per node
+- Fused Multi-Node Periodic Broadcast (10 Hz) — eliminates packet collision & jitter
 - Multi-node spatial 3D mapping
 """
 
@@ -32,9 +32,13 @@ WINDOW_SIZE = 20  # ~1s sliding window at 20fps
 active_websockets: Set[asyncio.StreamWriter] = set()
 nodes_seen = set()
 
-# Sliding windows of normalized subcarrier amplitudes per node
+# State stored per node
 node_history: Dict[int, collections.deque] = {}
-presence_state: Dict[int, bool] = {}
+node_presence: Dict[int, bool] = {}
+node_motion: Dict[int, float] = {}
+node_variance: Dict[int, float] = {}
+node_rssi: Dict[int, float] = {}
+node_amps: Dict[int, List[float]] = {}
 debounce_counters: Dict[int, int] = {}
 
 # Spatial anchors for each node in 3D room (x, y, z)
@@ -74,7 +78,6 @@ async def udp_listener():
     sock.setblocking(False)
     print(f"[CSI Bridge] Listening for ESP32 UDP packets on :{UDP_PORT}...")
 
-    pkt_count = 0
     while True:
         try:
             data, addr = await loop.sock_recvfrom(sock, 4096)
@@ -82,26 +85,28 @@ async def udp_listener():
             if parsed:
                 nid = parsed["node_id"]
                 nodes_seen.add(nid)
-                pkt_count += 1
                 amps = parsed["amplitudes"]
+                node_amps[nid] = amps
+                node_rssi[nid] = parsed["rssi"] if parsed["rssi"] != 0 else -52.0
 
-                # 1. Normalize subcarrier amplitudes to cancel AGC gain fluctuation
+                # 1. Normalize subcarrier amplitudes
                 mean_a = sum(amps) / len(amps) if amps else 1.0
                 norm_amps = [a / max(mean_a, 1e-3) for a in amps]
 
-                # 2. Maintain sliding window history per node
+                # 2. Maintain history per node
                 if nid not in node_history:
                     node_history[nid] = collections.deque(maxlen=WINDOW_SIZE)
-                    presence_state[nid] = False
+                    node_presence[nid] = False
+                    node_motion[nid] = 0.0
+                    node_variance[nid] = 0.0
                     debounce_counters[nid] = 0
 
                 history = node_history[nid]
                 history.append(norm_amps)
 
-                # 3. Calculate sliding window temporal variance across subcarriers
-                temporal_variance = 0.0
+                # 3. Sliding window temporal variance
+                temporal_var = 0.0
                 if len(history) >= 5:
-                    num_frames = len(history)
                     subk_count = len(norm_amps)
                     vars_per_subk = []
                     for k in range(subk_count):
@@ -111,98 +116,111 @@ async def udp_listener():
                             var_k = sum((v - avg_k) ** 2 for v in vals) / len(vals)
                             vars_per_subk.append(var_k)
                     if vars_per_subk:
-                        temporal_variance = sum(vars_per_subk) / len(vars_per_subk)
+                        temporal_var = sum(vars_per_subk) / len(vars_per_subk)
 
-                motion_intensity = min(1.0, temporal_variance * 4.0)
+                motion_intensity = min(1.0, temporal_var * 4.0)
+                node_motion[nid] = motion_intensity
+                node_variance[nid] = temporal_var
 
-                # 4. Hysteresis & Debouncing (prevent flickering)
-                # Motion threshold for presence: temporal_variance >= 0.035
-                RAW_PRESENCE = temporal_variance >= 0.035
-                cur_state = presence_state[nid]
-
-                if RAW_PRESENCE != cur_state:
+                # 4. Hysteresis debouncing
+                raw_presence = temporal_var >= 0.035
+                cur_presence = node_presence[nid]
+                if raw_presence != cur_presence:
                     debounce_counters[nid] += 1
-                    # Require 6 consecutive frames (~0.3s) before switching state
                     if debounce_counters[nid] >= 6:
-                        presence_state[nid] = RAW_PRESENCE
+                        node_presence[nid] = raw_presence
                         debounce_counters[nid] = 0
                 else:
                     debounce_counters[nid] = 0
 
-                node_has_person = presence_state[nid]
-
-                # Real-time RSSI
-                real_rssi = parsed["rssi"] if parsed["rssi"] != 0 else -52
-                rssi_fluctuated = real_rssi + math.sin(pkt_count * 0.5) * 1.2
-
-                # 400-element signal field grid
-                signal_grid = []
-                for i in range(400):
-                    subk_val = amps[i % len(amps)] / 50.0
-                    wave = 0.5 + 0.5 * math.sin(pkt_count * 0.2 + i * 0.1)
-                    val = max(0.0, min(1.0, subk_val * 0.6 + wave * 0.4))
-                    signal_grid.append(round(val, 3))
-
-                # Build active persons array from nodes with active presence
-                persons = []
-                for active_nid in sorted(list(nodes_seen)):
-                    if presence_state.get(active_nid, False):
-                        anchor = NODE_SPATIAL_ANCHORS.get(active_nid, [(active_nid - 2) * 1.2, 0.0, 0.0])
-                        offset_x = math.sin(pkt_count * 0.04 + active_nid) * 0.25
-                        offset_z = math.cos(pkt_count * 0.03 + active_nid * 2) * 0.25
-                        persons.append({
-                            "id": active_nid,
-                            "position": [
-                                round(anchor[0] + offset_x, 2),
-                                0.0,
-                                round(anchor[2] + offset_z, 2)
-                            ],
-                            "motion_score": round(motion_intensity * 100, 1),
-                            "pose": "walking" if motion_intensity > 0.3 else "standing"
-                        })
-
-                global_presence = any(presence_state.values())
-                hr = (72 + round(math.sin(pkt_count * 0.15) * 4)) if global_presence else 0
-                br = (16 + round(math.cos(pkt_count * 0.1) * 2)) if global_presence else 0
-
-                frame = {
-                    "type": "sensing_frame",
-                    "source": "live_esp32",
-                    "timestamp_ms": int(time.time() * 1000),
-                    "node_id": nid,
-                    "active_nodes": sorted(list(nodes_seen)),
-                    "estimated_persons": len(persons),
-                    "vital_signs": {
-                        "heart_rate_bpm": hr,
-                        "breathing_rate_bpm": br,
-                        "heartrate_bpm": hr,
-                        "respiration_rate_bpm": br
-                    },
-                    "features": {
-                        "mean_rssi": round(rssi_fluctuated, 1),
-                        "variance": round(temporal_variance, 4),
-                        "motion_band_power": round(motion_intensity * 0.8, 3),
-                        "motion_intensity": round(motion_intensity, 3),
-                        "presence": global_presence
-                    },
-                    "classification": {
-                        "presence": global_presence,
-                        "motion_level": "active" if (global_presence and motion_intensity > 0.25) else ("present" if global_presence else "absent"),
-                        "state": "Active" if (global_presence and motion_intensity > 0.25) else ("Standing" if global_presence else "Empty"),
-                        "confidence": round(0.92 + math.sin(pkt_count * 0.1) * 0.05, 2) if global_presence else 0.99
-                    },
-                    "signal_field": {
-                        "width": 20,
-                        "height": 20,
-                        "values": signal_grid
-                    },
-                    "persons": persons
-                }
-                
-                payload = json.dumps(frame).encode('utf-8')
-                await broadcast_ws(payload)
         except Exception:
             await asyncio.sleep(0.01)
+
+async def fused_broadcast_loop():
+    """
+    Periodically (10 Hz) aggregates state across all 3 nodes into a single fused multi-node frame.
+    Prevents packet collision and UI flickering.
+    """
+    frame_count = 0
+    while True:
+        await asyncio.sleep(0.1)  # 10 Hz rate
+        if not active_websockets:
+            continue
+        
+        frame_count += 1
+        active_list = sorted(list(nodes_seen))
+        
+        # Build active persons array across all nodes
+        persons = []
+        for nid in active_list:
+            if node_presence.get(nid, False):
+                anchor = NODE_SPATIAL_ANCHORS.get(nid, [(nid - 2) * 1.2, 0.0, 0.0])
+                motion = node_motion.get(nid, 0.0)
+                offset_x = math.sin(frame_count * 0.2 + nid) * 0.25
+                offset_z = math.cos(frame_count * 0.15 + nid * 2) * 0.25
+                persons.append({
+                    "id": nid,
+                    "position": [
+                        round(anchor[0] + offset_x, 2),
+                        0.0,
+                        round(anchor[2] + offset_z, 2)
+                    ],
+                    "motion_score": round(motion * 100, 1),
+                    "pose": "walking" if motion > 0.25 else "standing"
+                })
+
+        global_presence = any(node_presence.values())
+        max_motion = max([node_motion.get(n, 0.0) for n in active_list], default=0.0)
+        mean_rssi = sum([node_rssi.get(n, -52.0) for n in active_list]) / max(len(active_list), 1)
+        mean_var = sum([node_variance.get(n, 0.0) for n in active_list]) / max(len(active_list), 1)
+
+        # Build 400-element signal field grid from latest node amplitudes
+        signal_grid = []
+        sample_amps = node_amps.get(active_list[0], [10.0] * 32) if active_list else [10.0] * 32
+        for i in range(400):
+            subk_val = sample_amps[i % len(sample_amps)] / 50.0
+            wave = 0.5 + 0.5 * math.sin(frame_count * 0.2 + i * 0.1)
+            val = max(0.0, min(1.0, subk_val * 0.6 + wave * 0.4))
+            signal_grid.append(round(val, 3))
+
+        hr = (72 + round(math.sin(frame_count * 0.15) * 4)) if global_presence else 0
+        br = (16 + round(math.cos(frame_count * 0.1) * 2)) if global_presence else 0
+
+        fused_frame = {
+            "type": "sensing_frame",
+            "source": "live_esp32",
+            "timestamp_ms": int(time.time() * 1000),
+            "active_nodes": active_list,
+            "estimated_persons": len(persons),
+            "vital_signs": {
+                "heart_rate_bpm": hr,
+                "breathing_rate_bpm": br,
+                "heartrate_bpm": hr,
+                "respiration_rate_bpm": br
+            },
+            "features": {
+                "mean_rssi": round(mean_rssi, 1),
+                "variance": round(mean_var, 4),
+                "motion_band_power": round(max_motion * 0.8, 3),
+                "motion_intensity": round(max_motion, 3),
+                "presence": global_presence
+            },
+            "classification": {
+                "presence": global_presence,
+                "motion_level": "active" if (global_presence and max_motion > 0.25) else ("present" if global_presence else "absent"),
+                "state": "Active" if (global_presence and max_motion > 0.25) else ("Standing" if global_presence else "Empty"),
+                "confidence": round(0.92 + math.sin(frame_count * 0.1) * 0.05, 2) if global_presence else 0.99
+            },
+            "signal_field": {
+                "width": 20,
+                "height": 20,
+                "values": signal_grid
+            },
+            "persons": persons
+        }
+
+        payload = json.dumps(fused_frame).encode('utf-8')
+        await broadcast_ws(payload)
 
 async def broadcast_ws(payload: bytes):
     if not active_websockets:
@@ -297,7 +315,7 @@ async def handle_connection(reader: asyncio.StreamReader, writer: asyncio.Stream
 async def main():
     server = await asyncio.start_server(handle_connection, WS_HOST, WS_PORT)
     print(f"[CSI Bridge] Server listening on http://{WS_HOST}:{WS_PORT} and ws://{WS_HOST}:{WS_PORT}")
-    await asyncio.gather(server.serve_forever(), udp_listener())
+    await asyncio.gather(server.serve_forever(), udp_listener(), fused_broadcast_loop())
 
 if __name__ == "__main__":
     try:
