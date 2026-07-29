@@ -4,26 +4,19 @@ live-csi-ws-bridge.py
 
 Bridges live ESP32-S3 UDP CSI packets (port 5005) directly to WebSocket clients (port 8765)
 and HTTP /health endpoint for RuView Observatory 3D & Vite Dashboard.
-Features:
-- Subcarrier Amplitude Normalization (cancel Wi-Fi AGC gain jumps)
-- Sliding Window Temporal Variance per node
-- DBSCAN Spatial Distance Clustering (eps = 2.0m):
-  - Fuses nearby node detections (<2.0m) into 1 single person target
-  - Accurately splits distinct people in opposite room areas (>2.0m) into 2 person targets
-- Fused Multi-Node Periodic Broadcast (10 Hz)
+Uses official `websockets` library with Chrome/Edge process_request compatibility and broadcast.
 """
 
 import asyncio
-import hashlib
-import base64
-import json
 import collections
+import json
 import math
 import socket
 import struct
 import sys
 import time
 from typing import Dict, Set, List
+import websockets
 
 UDP_PORT = 5005
 WS_PORT = 8765
@@ -31,7 +24,7 @@ WS_HOST = "0.0.0.0"
 
 WINDOW_SIZE = 20  # ~1s sliding window at 20fps
 
-active_websockets: Set[asyncio.StreamWriter] = set()
+active_websockets: Set[websockets.WebSocketServerProtocol] = set()
 nodes_seen = set()
 
 # State stored per node
@@ -91,7 +84,7 @@ async def udp_listener():
                 node_amps[nid] = amps
                 node_rssi[nid] = parsed["rssi"] if parsed["rssi"] != 0 else -52.0
 
-                # 1. Normalize subcarrier amplitudes
+                # 1. Normalize subcarriers
                 mean_a = sum(amps) / len(amps) if amps else 1.0
                 norm_amps = [a / max(mean_a, 1e-3) for a in amps]
 
@@ -139,11 +132,6 @@ async def udp_listener():
             await asyncio.sleep(0.01)
 
 async def fused_broadcast_loop():
-    """
-    Periodically (10 Hz) aggregates state across all nodes.
-    Uses DBSCAN Spatial Distance Clustering (eps = 2.0m) to group close node detections into 1 person,
-    and separate distant node detections (>2.0m) into multiple persons.
-    """
     frame_count = 0
     while True:
         await asyncio.sleep(0.1)  # 10 Hz rate
@@ -152,8 +140,6 @@ async def fused_broadcast_loop():
         
         frame_count += 1
         active_list = sorted(list(nodes_seen))
-        
-        # Nodes actively detecting presence/motion
         active_sensing_nodes = [nid for nid in active_list if node_presence.get(nid, False)]
 
         persons = []
@@ -175,7 +161,6 @@ async def fused_broadcast_loop():
                 if not assigned:
                     clusters.append([nid])
 
-            # Generate Person targets for each distinct spatial cluster
             for p_idx, cluster in enumerate(clusters):
                 c_anchors = [NODE_SPATIAL_ANCHORS.get(cn, [0.0, 0.0, 0.0]) for cn in cluster]
                 c_weights = [max(0.1, node_motion.get(cn, 0.1)) for cn in cluster]
@@ -204,7 +189,6 @@ async def fused_broadcast_loop():
         mean_rssi = sum([node_rssi.get(n, -52.0) for n in active_list]) / max(len(active_list), 1)
         mean_var = sum([node_variance.get(n, 0.0) for n in active_list]) / max(len(active_list), 1)
 
-        # Build 400-element signal field grid from latest node amplitudes
         signal_grid = []
         sample_amps = node_amps.get(active_list[0], [10.0] * 32) if active_list else [10.0] * 32
         for i in range(400):
@@ -249,103 +233,35 @@ async def fused_broadcast_loop():
             "persons": persons
         }
 
-        payload = json.dumps(fused_frame).encode('utf-8')
-        await broadcast_ws(payload)
+        payload = json.dumps(fused_frame)
+        websockets.broadcast(active_websockets, payload)
 
-async def broadcast_ws(payload: bytes):
-    if not active_websockets:
-        return
-    
-    frame = bytearray()
-    frame.append(0x81)  # Text frame, FIN
-    length = len(payload)
-    if length <= 125:
-        frame.append(length)
-    elif length <= 65535:
-        frame.append(126)
-        frame.extend(struct.pack("!H", length))
-    else:
-        frame.append(127)
-        frame.extend(struct.pack("!Q", length))
-    frame.extend(payload)
-
-    to_remove = set()
-    for writer in list(active_websockets):
-        try:
-            writer.write(frame)
-            await writer.drain()
-        except Exception:
-            to_remove.add(writer)
-            
-    for w in to_remove:
-        active_websockets.discard(w)
-
-async def handle_connection(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+async def echo(websocket):
+    active_websockets.add(websocket)
+    print(f"[CSI Bridge] Client connected over WebSocket! Active clients: {len(active_websockets)}")
     try:
-        request_line = await reader.readline()
-        if not request_line:
-            writer.close()
-            return
-        
-        headers = {}
-        while True:
-            line = await reader.readline()
-            if line == b'\r\n' or not line:
-                break
-            parts = line.decode('utf-8', errors='ignore').split(':', 1)
-            if len(parts) == 2:
-                headers[parts[0].strip().lower()] = parts[1].strip()
-        
-        req_str = request_line.decode('utf-8', errors='ignore')
-        if "GET /health" in req_str:
-            resp_body = json.dumps({"status": "ok", "nodes": sorted(list(nodes_seen))}).encode('utf-8')
-            resp = (
-                f"HTTP/1.1 200 OK\r\n"
-                f"Content-Type: application/json\r\n"
-                f"Access-Control-Allow-Origin: *\r\n"
-                f"Content-Length: {len(resp_body)}\r\n\r\n"
-            ).encode('utf-8') + resp_body
-            writer.write(resp)
-            await writer.drain()
-            writer.close()
-            return
-
-        # WebSocket Upgrade
-        sec_key = headers.get("sec-websocket-key")
-        if sec_key:
-            GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-            accept_key = base64.b64encode(hashlib.sha1((sec_key + GUID).encode()).digest()).decode()
-            response = (
-                "HTTP/1.1 101 Switching Protocols\r\n"
-                "Upgrade: websocket\r\n"
-                "Connection: Upgrade\r\n"
-                f"Sec-WebSocket-Accept: {accept_key}\r\n\r\n"
-            ).encode('utf-8')
-            writer.write(response)
-            await writer.drain()
-            
-            active_websockets.add(writer)
-            print(f"[CSI Bridge] Client connected over WebSocket! Active clients: {len(active_websockets)}")
-
-            while True:
-                data = await reader.read(1024)
-                if not data:
-                    break
-        else:
-            writer.close()
+        async for message in websocket:
+            pass
     except Exception:
         pass
     finally:
-        active_websockets.discard(writer)
-        try:
-            writer.close()
-        except Exception:
-            pass
+        active_websockets.discard(websocket)
+        print(f"[CSI Bridge] Client disconnected. Active clients: {len(active_websockets)}")
+
+def process_request(connection, request):
+    if request.path == "/health":
+        body = json.dumps({"status": "ok", "nodes": sorted(list(nodes_seen))}).encode('utf-8')
+        return connection.respond(
+            websockets.http.HTTPStatus.OK,
+            [("Content-Type", "application/json"), ("Access-Control-Allow-Origin", "*")],
+            body
+        )
+    return None
 
 async def main():
-    server = await asyncio.start_server(handle_connection, WS_HOST, WS_PORT)
+    server = await websockets.serve(echo, WS_HOST, WS_PORT, process_request=process_request)
     print(f"[CSI Bridge] Server listening on http://{WS_HOST}:{WS_PORT} and ws://{WS_HOST}:{WS_PORT}")
-    await asyncio.gather(server.serve_forever(), udp_listener(), fused_broadcast_loop())
+    await asyncio.gather(server.wait_closed(), udp_listener(), fused_broadcast_loop())
 
 if __name__ == "__main__":
     try:
