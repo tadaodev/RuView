@@ -270,6 +270,9 @@ export class HudController {
       this.saveSettings();
     });
 
+    // Ensure badge and quick-select are synced on load
+    this.updateSourceBadge(s.dataSource, obs._ws);
+
     // Buttons
     document.getElementById('btn-reset-camera').addEventListener('click', () => {
       obs._camera.position.set(6, 5, 8);

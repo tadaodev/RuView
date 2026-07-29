@@ -128,10 +128,16 @@ class Observatory {
     this._showFps = false;
     this._qualityLevel = 2;
 
-    // WebSocket for live data — always try auto-detect on startup
+    // WebSocket for live data — check saved setting or auto-detect on startup
     this._ws = null;
     this._liveData = null;
-    this._autoDetectLive();
+    if (this.settings.dataSource === 'ws') {
+      const host = window.location.hostname || '127.0.0.1';
+      const targetUrl = this.settings.wsUrl || `ws://${host}:8765`;
+      void this._connectWS(targetUrl);
+    } else {
+      this._autoDetectLive();
+    }
 
     // Input
     this._initKeyboard();
