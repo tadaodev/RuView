@@ -4,13 +4,18 @@ live-csi-ws-bridge.py
 
 Bridges live ESP32-S3 UDP CSI packets (port 5005) directly to WebSocket clients (port 8765)
 and HTTP /health endpoint for RuView Observatory 3D & Vite Dashboard.
-Includes Automatic Empty-Room Baseline Calibration and Dynamic Presence / Multi-Person Detection.
+Features:
+- Subcarrier Amplitude Normalization (cancel Wi-Fi AGC gain jumps)
+- Sliding Window Temporal Variance (20 frames ~ 1.0s window)
+- Hysteresis & Debouncing to prevent person count flickering
+- Multi-node spatial 3D mapping
 """
 
 import asyncio
 import hashlib
 import base64
 import json
+import collections
 import math
 import socket
 import struct
@@ -22,11 +27,15 @@ UDP_PORT = 5005
 WS_PORT = 8765
 WS_HOST = "0.0.0.0"
 
+WINDOW_SIZE = 20  # ~1s sliding window at 20fps
+
 active_websockets: Set[asyncio.StreamWriter] = set()
 nodes_seen = set()
-prev_amplitudes: Dict[int, List[float]] = {}
-baseline_amplitudes: Dict[int, List[float]] = {}
-calibration_counts: Dict[int, int] = {}
+
+# Sliding windows of normalized subcarrier amplitudes per node
+node_history: Dict[int, collections.deque] = {}
+presence_state: Dict[int, bool] = {}
+debounce_counters: Dict[int, int] = {}
 
 # Spatial anchors for each node in 3D room (x, y, z)
 NODE_SPATIAL_ANCHORS = {
@@ -76,47 +85,57 @@ async def udp_listener():
                 pkt_count += 1
                 amps = parsed["amplitudes"]
 
-                # Accumulate baseline during initial calibration (~30 packets per node)
-                cal_count = calibration_counts.get(nid, 0)
-                if cal_count < 30:
-                    if nid not in baseline_amplitudes:
-                        baseline_amplitudes[nid] = [0.0] * len(amps)
-                    for i, a in enumerate(amps):
-                        if i < len(baseline_amplitudes[nid]):
-                            baseline_amplitudes[nid][i] += a
-                    calibration_counts[nid] = cal_count + 1
-                    if cal_count + 1 == 30:
-                        baseline_amplitudes[nid] = [
-                            round(tot / 30.0, 2) for tot in baseline_amplitudes[nid]
-                        ]
-                        print(f"[CSI Bridge] Node {nid} baseline calibrated successfully!")
+                # 1. Normalize subcarrier amplitudes to cancel AGC gain fluctuation
+                mean_a = sum(amps) / len(amps) if amps else 1.0
+                norm_amps = [a / max(mean_a, 1e-3) for a in amps]
 
-                is_calibrated = all(calibration_counts.get(n, 0) >= 30 for n in nodes_seen) if nodes_seen else False
+                # 2. Maintain sliding window history per node
+                if nid not in node_history:
+                    node_history[nid] = collections.deque(maxlen=WINDOW_SIZE)
+                    presence_state[nid] = False
+                    debounce_counters[nid] = 0
 
-                mean_amp = sum(amps) / len(amps) if amps else 1.0
-                variance = sum((a - mean_amp) ** 2 for a in amps) / max(len(amps), 1)
-                
-                # Deviation from calibrated empty-room baseline
-                base_amps = baseline_amplitudes.get(nid, [])
-                baseline_diff = 0.0
-                if base_amps and len(base_amps) == len(amps):
-                    baseline_diff = sum(abs(a - b) for a, b in zip(amps, base_amps)) / len(amps)
+                history = node_history[nid]
+                history.append(norm_amps)
 
-                # Motion delta from previous packet
-                prev_amps = prev_amplitudes.get(nid, [])
-                motion_delta = 0.0
-                if prev_amps and len(prev_amps) == len(amps):
-                    motion_delta = sum(abs(a - b) for a, b in zip(amps, prev_amps)) / len(amps)
-                prev_amplitudes[nid] = amps
+                # 3. Calculate sliding window temporal variance across subcarriers
+                temporal_variance = 0.0
+                if len(history) >= 5:
+                    num_frames = len(history)
+                    subk_count = len(norm_amps)
+                    vars_per_subk = []
+                    for k in range(subk_count):
+                        vals = [frame[k] for frame in history if k < len(frame)]
+                        if vals:
+                            avg_k = sum(vals) / len(vals)
+                            var_k = sum((v - avg_k) ** 2 for v in vals) / len(vals)
+                            vars_per_subk.append(var_k)
+                    if vars_per_subk:
+                        temporal_variance = sum(vars_per_subk) / len(vars_per_subk)
 
-                motion_intensity = min(1.0, motion_delta * 0.05)
-                motion_power = round(motion_intensity * 0.8, 3)
+                motion_intensity = min(1.0, temporal_variance * 4.0)
 
-                # Real-time fluctuating RSSI
+                # 4. Hysteresis & Debouncing (prevent flickering)
+                # Motion threshold for presence: temporal_variance >= 0.035
+                RAW_PRESENCE = temporal_variance >= 0.035
+                cur_state = presence_state[nid]
+
+                if RAW_PRESENCE != cur_state:
+                    debounce_counters[nid] += 1
+                    # Require 6 consecutive frames (~0.3s) before switching state
+                    if debounce_counters[nid] >= 6:
+                        presence_state[nid] = RAW_PRESENCE
+                        debounce_counters[nid] = 0
+                else:
+                    debounce_counters[nid] = 0
+
+                node_has_person = presence_state[nid]
+
+                # Real-time RSSI
                 real_rssi = parsed["rssi"] if parsed["rssi"] != 0 else -52
                 rssi_fluctuated = real_rssi + math.sin(pkt_count * 0.5) * 1.2
 
-                # 400-element signal field grid derived from live CSI amplitudes
+                # 400-element signal field grid
                 signal_grid = []
                 for i in range(400):
                     subk_val = amps[i % len(amps)] / 50.0
@@ -124,16 +143,13 @@ async def udp_listener():
                     val = max(0.0, min(1.0, subk_val * 0.6 + wave * 0.4))
                     signal_grid.append(round(val, 3))
 
-                # Dynamic presence & person evaluation based on baseline deviation & motion
-                # When room is empty (baseline_diff < 3.5 and motion < 0.08): presence = False, persons = 0
-                has_presence = is_calibrated and (baseline_diff >= 3.5 or motion_intensity >= 0.08)
-                
+                # Build active persons array from nodes with active presence
                 persons = []
-                if has_presence:
-                    for active_nid in sorted(list(nodes_seen)):
+                for active_nid in sorted(list(nodes_seen)):
+                    if presence_state.get(active_nid, False):
                         anchor = NODE_SPATIAL_ANCHORS.get(active_nid, [(active_nid - 2) * 1.2, 0.0, 0.0])
-                        offset_x = math.sin(pkt_count * 0.04 + active_nid) * 0.3
-                        offset_z = math.cos(pkt_count * 0.03 + active_nid * 2) * 0.3
+                        offset_x = math.sin(pkt_count * 0.04 + active_nid) * 0.25
+                        offset_z = math.cos(pkt_count * 0.03 + active_nid * 2) * 0.25
                         persons.append({
                             "id": active_nid,
                             "position": [
@@ -141,12 +157,13 @@ async def udp_listener():
                                 0.0,
                                 round(anchor[2] + offset_z, 2)
                             ],
-                            "motion_score": round(motion_intensity * 100 + active_nid * 5, 1),
-                            "pose": "standing" if (active_nid + pkt_count // 40) % 2 == 0 else "walking"
+                            "motion_score": round(motion_intensity * 100, 1),
+                            "pose": "walking" if motion_intensity > 0.3 else "standing"
                         })
 
-                hr = (71 + round(math.sin(pkt_count * 0.15) * 4)) if has_presence else 0
-                br = (16 + round(math.cos(pkt_count * 0.1) * 2)) if has_presence else 0
+                global_presence = any(presence_state.values())
+                hr = (72 + round(math.sin(pkt_count * 0.15) * 4)) if global_presence else 0
+                br = (16 + round(math.cos(pkt_count * 0.1) * 2)) if global_presence else 0
 
                 frame = {
                     "type": "sensing_frame",
@@ -163,17 +180,16 @@ async def udp_listener():
                     },
                     "features": {
                         "mean_rssi": round(rssi_fluctuated, 1),
-                        "variance": round(variance, 2),
-                        "motion_band_power": motion_power,
+                        "variance": round(temporal_variance, 4),
+                        "motion_band_power": round(motion_intensity * 0.8, 3),
                         "motion_intensity": round(motion_intensity, 3),
-                        "baseline_deviation": round(baseline_diff, 2),
-                        "presence": has_presence
+                        "presence": global_presence
                     },
                     "classification": {
-                        "presence": has_presence,
-                        "motion_level": "active" if (has_presence and motion_intensity > 0.12) else ("present" if has_presence else "absent"),
-                        "state": "Active" if (has_presence and motion_intensity > 0.12) else ("Standing" if has_presence else "Empty"),
-                        "confidence": round(0.92 + math.sin(pkt_count * 0.1) * 0.05, 2) if has_presence else 0.99
+                        "presence": global_presence,
+                        "motion_level": "active" if (global_presence and motion_intensity > 0.25) else ("present" if global_presence else "absent"),
+                        "state": "Active" if (global_presence and motion_intensity > 0.25) else ("Standing" if global_presence else "Empty"),
+                        "confidence": round(0.92 + math.sin(pkt_count * 0.1) * 0.05, 2) if global_presence else 0.99
                     },
                     "signal_field": {
                         "width": 20,
