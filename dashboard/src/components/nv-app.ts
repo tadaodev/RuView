@@ -145,8 +145,8 @@ export class NvApp extends LitElement {
         @click=${(e: Event) => { e.preventDefault(); const sr = this.shadowRoot; sr?.querySelector<HTMLElement>('.main')?.focus(); }}>
         Skip to main content
       </a>
-      <div class="app ${isSimple ? 'simple' : ''}">
-        <nv-rail .view=${this.view} @navigate=${(e: CustomEvent<View>) => (this.view = e.detail)}></nv-rail>
+      <div class="app ${isSimple ? 'simple' : ''}" @navigate=${(e: CustomEvent<View>) => (this.view = e.detail)}>
+        <nv-rail .view=${this.view}></nv-rail>
         <nv-topbar></nv-topbar>
         <nv-sidebar></nv-sidebar>
         <main class="main" id="main-content" tabindex="-1" role="main" aria-label="Main view">

@@ -140,7 +140,12 @@ export class NvHome extends LitElement {
   }
 
   private async runDemo(): Promise<void> {
-    const c = getClient(); if (!c) return;
+    const c = getClient();
+    if (!c) {
+      running.value = !running.value;
+      this.go('scene');
+      return;
+    }
     if (running.value) {
       await c.pause();
       running.value = false;
@@ -149,6 +154,7 @@ export class NvHome extends LitElement {
       await c.run();
       running.value = true;
       pushLog('ok', 'demo started · streaming MagFrames');
+      this.go('scene');
     }
   }
 
