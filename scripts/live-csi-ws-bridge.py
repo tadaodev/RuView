@@ -113,16 +113,16 @@ async def udp_listener():
                     if vars_per_subk:
                         temporal_var = sum(vars_per_subk) / len(vars_per_subk)
 
-                motion_intensity = min(1.0, temporal_var * 4.0)
+                motion_intensity = min(1.0, temporal_var * 25.0)
                 node_motion[nid] = motion_intensity
                 node_variance[nid] = temporal_var
 
-                # 4. Hysteresis debouncing
-                raw_presence = temporal_var >= 0.035
+                # 4. Hysteresis debouncing (threshold 0.008 for high sensitivity)
+                raw_presence = temporal_var >= 0.008
                 cur_presence = node_presence[nid]
                 if raw_presence != cur_presence:
                     debounce_counters[nid] += 1
-                    if debounce_counters[nid] >= 6:
+                    if debounce_counters[nid] >= 3:
                         node_presence[nid] = raw_presence
                         debounce_counters[nid] = 0
                 else:
@@ -181,7 +181,7 @@ async def fused_broadcast_loop():
                         round(centroid_z + offset_z, 2)
                     ],
                     "motion_score": round(c_max_motion * 100, 1),
-                    "pose": "walking" if c_max_motion > 0.25 else "standing"
+                    "pose": "walking" if c_max_motion >= 0.15 else "standing"
                 })
 
         global_presence = any(node_presence.values())
@@ -221,8 +221,8 @@ async def fused_broadcast_loop():
             },
             "classification": {
                 "presence": global_presence,
-                "motion_level": "active" if (global_presence and max_motion > 0.25) else ("present" if global_presence else "absent"),
-                "state": "Active" if (global_presence and max_motion > 0.25) else ("Standing" if global_presence else "Empty"),
+                "motion_level": "active" if (global_presence and max_motion >= 0.15) else ("present" if global_presence else "absent"),
+                "state": "Active" if (global_presence and max_motion >= 0.15) else ("Standing" if global_presence else "Empty"),
                 "confidence": round(0.92 + math.sin(frame_count * 0.1) * 0.05, 2) if global_presence else 0.99
             },
             "signal_field": {
@@ -248,11 +248,13 @@ async def echo(websocket):
         active_websockets.discard(websocket)
         print(f"[CSI Bridge] Client disconnected. Active clients: {len(active_websockets)}")
 
+from http import HTTPStatus
+
 def process_request(connection, request):
     if request.path == "/health":
         body = json.dumps({"status": "ok", "nodes": sorted(list(nodes_seen))}).encode('utf-8')
         return connection.respond(
-            websockets.http.HTTPStatus.OK,
+            HTTPStatus.OK,
             [("Content-Type", "application/json"), ("Access-Control-Allow-Origin", "*")],
             body
         )
