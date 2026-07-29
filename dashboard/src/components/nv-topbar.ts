@@ -68,13 +68,29 @@ export class NvTopbar extends LitElement {
   }
 
   private async toggleRun(): Promise<void> {
-    const c = getClient(); if (!c) return;
-    if (running.value) { await c.pause(); running.value = false; }
-    else { await c.run(); running.value = true; }
+    const c = getClient();
+    const isJa = getLocale() === 'ja';
+    if (running.value) {
+      if (c) await c.pause();
+      running.value = false;
+      pushLog('info', isJa ? 'シミュレーション一時停止' : 'simulation paused');
+      toast(isJa ? '一時停止' : 'Paused', '❚❚');
+    } else {
+      if (c) await c.run();
+      running.value = true;
+      pushLog('ok', isJa ? 'シミュレーション実行中' : 'demo started · streaming MagFrames');
+      toast(isJa ? 'シミュレーション開始' : 'Started', '▶');
+    }
   }
   private async reset(): Promise<void> {
-    const c = getClient(); if (!c) return;
-    await c.reset();
+    const c = getClient();
+    const isJa = getLocale() === 'ja';
+    if (c) await c.reset();
+    running.value = false;
+    t.value = 0;
+    fps.value = 0;
+    pushLog('warn', isJa ? 'パイプラインリセット · t=0' : 'pipeline reset · t=0');
+    toast(isJa ? 'パイプラインをリセットしました' : 'Pipeline reset', '⟳');
   }
   private toggleTheme(): void {
     theme.value = theme.value === 'dark' ? 'light' : 'dark';
