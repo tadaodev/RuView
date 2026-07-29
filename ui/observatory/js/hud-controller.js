@@ -282,7 +282,7 @@ export class HudController {
     document.getElementById('btn-calibrate-baseline')?.addEventListener('click', () => {
       if (obs._ws && obs._ws.readyState === WebSocket.OPEN) {
         obs._ws.send(JSON.stringify({ type: 'calibrate' }));
-        alert('🧹 空部屋ベースライン校正を開始しました！部屋を出て約3秒間静止してください。背景ノイズが自動消去されます。');
+        alert('⏳ 【校正カウントダウン】3秒後に空部屋の計測を開始します。\n\nお部屋の外へ移動するか、部屋の端で3秒間静止してください。');
       } else {
         alert('⚠️ ライブWebSocket接続中のみ校正が可能です。「ライブ WebSocket」を選択してください。');
       }

@@ -44,6 +44,7 @@ debounce_counters: Dict[int, int] = {}
 # Baseline calibration state (ADR-135 Empty-room Baseline Subtraction)
 node_baselines: Dict[int, List[float]] = {}
 calibration_buffers: Dict[int, List[List[float]]] = {}
+calibration_delay_frames: int = 0
 calibration_frames_left: int = 0
 
 # Spatial anchors for each node in 3D room (x, y, z)
@@ -53,11 +54,12 @@ NODE_SPATIAL_ANCHORS = {
     3: [0.0, 0.0, 1.4],    # Node 3: Center/front zone
 }
 
-def start_calibration():
-    global calibration_frames_left, calibration_buffers
+def start_calibration(delay_seconds: int = 3):
+    global calibration_delay_frames, calibration_frames_left, calibration_buffers
+    calibration_delay_frames = delay_seconds * 10  # 3s delay (30 frames at 10Hz)
     calibration_frames_left = 30  # Collect ~3 seconds of baseline frames
     calibration_buffers = {}
-    print("[CSI Bridge] 🧹 Empty-room Baseline Calibration started (30 frames)...")
+    print(f"[CSI Bridge] ⏳ Baseline Calibration requested. {delay_seconds}s countdown delay for user to exit room...")
 
 def parse_csi_packet(data: bytes) -> dict | None:
     if len(data) < 8:
@@ -82,7 +84,7 @@ def parse_csi_packet(data: bytes) -> dict | None:
     }
 
 async def udp_listener():
-    global calibration_frames_left
+    global calibration_delay_frames, calibration_frames_left
     loop = asyncio.get_running_loop()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -90,8 +92,8 @@ async def udp_listener():
     sock.setblocking(False)
     print(f"[CSI Bridge] Listening for ESP32 UDP packets on :{UDP_PORT}...")
 
-    # Start calibration on boot
-    start_calibration()
+    # Start calibration on boot with 3s delay
+    start_calibration(3)
 
     while True:
         try:
@@ -108,8 +110,12 @@ async def udp_listener():
                 mean_a = sum(amps) / len(amps) if amps else 1.0
                 norm_amps = [a / max(mean_a, 1e-3) for a in amps]
 
-                # 2. Calibration baseline collection
-                if calibration_frames_left > 0:
+                # 2. Calibration countdown & baseline collection
+                if calibration_delay_frames > 0:
+                    calibration_delay_frames -= 1
+                    if calibration_delay_frames == 0:
+                        print("[CSI Bridge] 🧹 Countdown finished! Now sampling empty-room baseline (30 frames)...")
+                elif calibration_frames_left > 0:
                     if nid not in calibration_buffers:
                         calibration_buffers[nid] = []
                     calibration_buffers[nid].append(norm_amps)
