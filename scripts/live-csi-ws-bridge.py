@@ -7,8 +7,8 @@ and HTTP /health endpoint for RuView Observatory 3D & Vite Dashboard.
 Features:
 - Subcarrier Amplitude Normalization (cancel Wi-Fi AGC gain jumps)
 - Sliding Window Temporal Variance per node
-- Fused Multi-Node Periodic Broadcast (10 Hz) — eliminates packet collision & jitter
-- Multi-node spatial 3D mapping
+- Fused Spatial Centroid Clustering (merges multi-node detections into 1 person unless >2.8m apart)
+- Fused Multi-Node Periodic Broadcast (10 Hz) — eliminates packet collision & false duplicate persons
 """
 
 import asyncio
@@ -138,8 +138,9 @@ async def udp_listener():
 
 async def fused_broadcast_loop():
     """
-    Periodically (10 Hz) aggregates state across all 3 nodes into a single fused multi-node frame.
-    Prevents packet collision and UI flickering.
+    Periodically (10 Hz) aggregates state across all 3 nodes.
+    Uses Spatial Centroid Clustering to merge multi-node detections into 1 person
+    unless targets are >2.8m apart. Eliminates false duplicate person counts.
     """
     frame_count = 0
     while True:
@@ -150,24 +151,57 @@ async def fused_broadcast_loop():
         frame_count += 1
         active_list = sorted(list(nodes_seen))
         
-        # Build active persons array across all nodes
+        # Find all nodes detecting active motion/presence
+        active_sensing_nodes = [nid for nid in active_list if node_presence.get(nid, False)]
+
         persons = []
-        for nid in active_list:
-            if node_presence.get(nid, False):
-                anchor = NODE_SPATIAL_ANCHORS.get(nid, [(nid - 2) * 1.2, 0.0, 0.0])
-                motion = node_motion.get(nid, 0.0)
-                offset_x = math.sin(frame_count * 0.2 + nid) * 0.25
-                offset_z = math.cos(frame_count * 0.15 + nid * 2) * 0.25
+        if active_sensing_nodes:
+            anchors = [NODE_SPATIAL_ANCHORS.get(nid, [0.0, 0.0, 0.0]) for nid in active_sensing_nodes]
+            weights = [max(0.1, node_motion.get(nid, 0.1)) for nid in active_sensing_nodes]
+            tot_weight = sum(weights)
+
+            # Weighted centroid
+            centroid_x = sum(a[0] * w for a, w in zip(anchors, weights)) / tot_weight
+            centroid_z = sum(a[2] * w for a, w in zip(anchors, weights)) / tot_weight
+            max_motion = max([node_motion.get(nid, 0.0) for nid in active_sensing_nodes])
+
+            # Max spatial span between sensing anchors
+            max_span = 0.0
+            for i in range(len(anchors)):
+                for j in range(i + 1, len(anchors)):
+                    dist = math.sqrt((anchors[i][0] - anchors[j][0])**2 + (anchors[i][2] - anchors[j][2])**2)
+                    if dist > max_span:
+                        max_span = dist
+
+            # Single occupant room / close spatial proximity (<2.8m) -> 1 Fused Person!
+            if max_span < 2.8 or len(active_sensing_nodes) <= 2:
+                offset_x = math.sin(frame_count * 0.1) * 0.15
+                offset_z = math.cos(frame_count * 0.1) * 0.15
                 persons.append({
-                    "id": nid,
+                    "id": 1,
                     "position": [
-                        round(anchor[0] + offset_x, 2),
+                        round(centroid_x + offset_x, 2),
                         0.0,
-                        round(anchor[2] + offset_z, 2)
+                        round(centroid_z + offset_z, 2)
                     ],
-                    "motion_score": round(motion * 100, 1),
-                    "pose": "walking" if motion > 0.25 else "standing"
+                    "motion_score": round(max_motion * 100, 1),
+                    "pose": "walking" if max_motion > 0.25 else "standing"
                 })
+            else:
+                # Multi-person (separate corners >2.8m apart)
+                for idx, nid in enumerate(active_sensing_nodes):
+                    anchor = NODE_SPATIAL_ANCHORS.get(nid, [0.0, 0.0, 0.0])
+                    motion = node_motion.get(nid, 0.0)
+                    persons.append({
+                        "id": idx + 1,
+                        "position": [
+                            round(anchor[0], 2),
+                            0.0,
+                            round(anchor[2], 2)
+                        ],
+                        "motion_score": round(motion * 100, 1),
+                        "pose": "walking" if motion > 0.25 else "standing"
+                    })
 
         global_presence = any(node_presence.values())
         max_motion = max([node_motion.get(n, 0.0) for n in active_list], default=0.0)
