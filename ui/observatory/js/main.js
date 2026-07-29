@@ -490,9 +490,17 @@ class Observatory {
       this._ws = new WebSocket(wsUrl);
       this._ws.onopen = () => {
         console.log('[Observatory] WebSocket connected to', wsUrl);
+        this.settings.dataSource = 'ws';
         this._hud.updateSourceBadge('ws', this._ws);
       };
-      this._ws.onmessage = (evt) => { try { this._liveData = JSON.parse(evt.data); } catch {} };
+      this._ws.onmessage = (evt) => { 
+        try { 
+          this._liveData = JSON.parse(evt.data); 
+          if (this.settings.dataSource === 'ws') {
+            this._hud.updateSourceBadge('ws', this._ws);
+          }
+        } catch {} 
+      };
       this._ws.onclose = () => {
         console.log('[Observatory] WebSocket closed');
         this._ws = null;

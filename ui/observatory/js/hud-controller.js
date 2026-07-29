@@ -377,8 +377,11 @@ export class HudController {
   updateSourceBadge(dataSource, ws) {
     const dot = document.querySelector('#data-source-badge .dot');
     const label = document.getElementById('data-source-label');
+    if (!dot || !label) return;
     if (dataSource === 'ws' && ws?.readyState === WebSocket.OPEN) {
       dot.className = 'dot dot--live'; label.textContent = I18n.t('conn.live', 'LIVE');
+    } else if (dataSource === 'ws') {
+      dot.className = 'dot dot--connecting'; label.textContent = 'CONNECTING...';
     } else {
       dot.className = 'dot dot--demo'; label.textContent = I18n.t('conn.simulated', 'DEMO');
     }
@@ -390,6 +393,7 @@ export class HudController {
 
   updateHUD(data, demoData) {
     if (!data) return;
+    this.updateSourceBadge(this._obs.settings.dataSource, this._obs._ws);
     const vs = data.vital_signs || {};
     const feat = data.features || {};
     const cls = data.classification || {};
