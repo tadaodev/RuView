@@ -68,7 +68,7 @@ export class NvRail extends LitElement {
   }
 
   private navigate(v: View): void {
-    this.dispatchEvent(new CustomEvent('navigate', { detail: v }));
+    this.dispatchEvent(new CustomEvent('navigate', { detail: v, bubbles: true, composed: true }));
   }
 
   override render() {

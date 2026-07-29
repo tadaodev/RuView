@@ -146,7 +146,7 @@ export class NvApp extends LitElement {
         Skip to main content
       </a>
       <div class="app ${isSimple ? 'simple' : ''}" @navigate=${(e: CustomEvent<View>) => (this.view = e.detail)}>
-        <nv-rail .view=${this.view}></nv-rail>
+        <nv-rail .view=${this.view} @navigate=${(e: CustomEvent<View>) => (this.view = e.detail)}></nv-rail>
         <nv-topbar></nv-topbar>
         <nv-sidebar></nv-sidebar>
         <main class="main" id="main-content" tabindex="-1" role="main" aria-label="Main view">
