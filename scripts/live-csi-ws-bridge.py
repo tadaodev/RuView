@@ -131,10 +131,12 @@ async def udp_listener():
                                 node_baselines[n] = avg_base
                         print(f"[CSI Bridge] ✅ Baseline Calibration complete for nodes: {list(node_baselines.keys())}")
 
-                # 3. Background Subtraction (|amps - baseline|)
+                # 3. Background Subtraction (|amps - baseline|) & Static Shift Energy
                 base = node_baselines.get(nid, None)
+                base_shift = 0.0
                 if base and len(base) == len(norm_amps):
                     proc_amps = [abs(norm_amps[k] - base[k]) for k in range(len(norm_amps))]
+                    base_shift = sum(proc_amps) / len(proc_amps)
                 else:
                     proc_amps = norm_amps
 
@@ -149,7 +151,7 @@ async def udp_listener():
                 history = node_history[nid]
                 history.append(proc_amps)
 
-                # 5. Sliding window temporal variance
+                # 5. Sliding window temporal variance (Motion)
                 temporal_var = 0.0
                 if len(history) >= 5:
                     subk_count = len(proc_amps)
@@ -167,12 +169,12 @@ async def udp_listener():
                 node_motion[nid] = motion_intensity
                 node_variance[nid] = temporal_var
 
-                # 6. Hysteresis debouncing
-                raw_presence = temporal_var >= 0.008
+                # 6. Hysteresis debouncing for Presence (base_shift for standing/sitting, temporal_var for motion)
+                raw_presence = (base_shift >= 0.020) or (temporal_var >= 0.005)
                 cur_presence = node_presence[nid]
                 if raw_presence != cur_presence:
                     debounce_counters[nid] += 1
-                    if debounce_counters[nid] >= 3:
+                    if debounce_counters[nid] >= 2:
                         node_presence[nid] = raw_presence
                         debounce_counters[nid] = 0
                 else:
