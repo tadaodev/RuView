@@ -509,6 +509,20 @@ class Observatory {
     this._liveData = null;
   }
 
+  _getBlankLiveData() {
+    return {
+      source: 'live_esp32',
+      timestamp_ms: Date.now(),
+      active_nodes: [],
+      estimated_persons: 0,
+      vital_signs: { heart_rate_bpm: 0, respiration_rate_bpm: 0 },
+      features: { mean_rssi: -52, variance: 0, motion_intensity: 0, presence: false },
+      classification: { presence: false, motion_level: 'absent', state: 'Empty', confidence: 1.0 },
+      signal_field: { width: 20, height: 20, values: new Array(400).fill(0) },
+      persons: []
+    };
+  }
+
   // ========================================
   // ANIMATION LOOP
   // ========================================
@@ -518,18 +532,19 @@ class Observatory {
     const dt = Math.min(this._clock.getDelta(), 0.1);
     const elapsed = this._clock.getElapsedTime();
 
-    // Data source
-    if (this.settings.dataSource === 'ws' && this._liveData) {
-      this._currentData = this._liveData;
+    // Data source selection: NEVER fall back to demo generator when in Live (ws) mode
+    if (this.settings.dataSource === 'ws') {
+      this._currentData = this._liveData || this._getBlankLiveData();
     } else {
       this._currentData = this._demoData.update(dt);
     }
     const data = this._currentData;
+    const activeScenario = this.settings.dataSource === 'ws' ? 'live' : this._demoData.currentScenario;
 
     // Updates
     this._nebula.update(dt, elapsed);
     this._figurePool.update(data, elapsed);
-    this._scenarioProps.update(data, this._demoData.currentScenario);
+    this._scenarioProps.update(data, activeScenario);
     this._updateDotMatrixMist(data, elapsed);
     this._updateParticleTrail(data, dt, elapsed);
     this._updateWifiWaves(elapsed);

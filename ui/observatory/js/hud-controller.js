@@ -394,12 +394,14 @@ export class HudController {
     const feat = data.features || {};
     const cls = data.classification || {};
 
-    // Sync scenario dropdown
-    const quickSel = document.getElementById('scenario-quick-select');
-    const cur = demoData._autoMode ? 'auto' : demoData.currentScenario;
-    if (quickSel && quickSel.value !== cur) quickSel.value = cur;
-    const autoIcon = document.getElementById('autoplay-icon');
-    if (autoIcon) autoIcon.className = demoData._autoMode ? '' : 'hidden';
+    // Sync scenario dropdown only when in Demo mode
+    if (this._obs.settings.dataSource !== 'ws') {
+      const quickSel = document.getElementById('scenario-quick-select');
+      const cur = demoData._autoMode ? 'auto' : demoData.currentScenario;
+      if (quickSel && quickSel.value !== cur) quickSel.value = cur;
+      const autoIcon = document.getElementById('autoplay-icon');
+      if (autoIcon) autoIcon.className = demoData._autoMode ? '' : 'hidden';
+    }
 
     const targetHr = vs.heart_rate_bpm || 0;
     const targetBr = vs.breathing_rate_bpm || 0;
