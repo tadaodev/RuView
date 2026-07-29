@@ -472,15 +472,21 @@ export class HudController {
   // ============================================================
 
   updateSparkline(data) {
-    const rssi = data?.features?.mean_rssi;
-    if (rssi == null || !this._sparklineCtx) return;
-    this._rssiHistory.push(rssi);
+    const val = data?.features?.motion_intensity != null 
+      ? data.features.motion_intensity 
+      : (data?.features?.mean_rssi != null ? (data.features.mean_rssi + 80) / 60 : 0);
+    if (val == null || !this._sparklineCtx) return;
+    this._rssiHistory.push(val);
     if (this._rssiHistory.length > 60) this._rssiHistory.shift();
 
     const ctx = this._sparklineCtx;
     const w = ctx.canvas.width, h = ctx.canvas.height;
     ctx.clearRect(0, 0, w, h);
     if (this._rssiHistory.length < 2) return;
+
+    const minV = Math.min(...this._rssiHistory);
+    const maxV = Math.max(...this._rssiHistory);
+    const range = Math.max(0.08, maxV - minV);
 
     ctx.beginPath();
     ctx.strokeStyle = '#2090ff';
@@ -489,8 +495,8 @@ export class HudController {
     ctx.shadowBlur = 4;
     for (let i = 0; i < this._rssiHistory.length; i++) {
       const x = (i / (this._rssiHistory.length - 1)) * w;
-      const norm = Math.max(0, Math.min(1, (this._rssiHistory[i] + 80) / 60));
-      const y = h - norm * h;
+      const norm = Math.max(0, Math.min(1, (this._rssiHistory[i] - minV) / range));
+      const y = h - (norm * 0.8 + 0.1) * h;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
@@ -499,7 +505,7 @@ export class HudController {
     ctx.lineTo(0, h);
     ctx.closePath();
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, 'rgba(32,144,255,0.15)');
+    grad.addColorStop(0, 'rgba(32,144,255,0.25)');
     grad.addColorStop(1, 'rgba(32,144,255,0)');
     ctx.fillStyle = grad;
     ctx.fill();
