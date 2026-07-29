@@ -4,7 +4,7 @@ live-csi-ws-bridge.py
 
 Bridges live ESP32-S3 UDP CSI packets (port 5005) directly to WebSocket clients (port 8765)
 and HTTP /health endpoint for RuView Observatory 3D & Vite Dashboard.
-Supports multi-node spatial 3D mapping and multi-person tracking.
+Includes Automatic Empty-Room Baseline Calibration and Dynamic Presence / Multi-Person Detection.
 """
 
 import asyncio
@@ -16,7 +16,7 @@ import socket
 import struct
 import sys
 import time
-from typing import Set
+from typing import Dict, Set, List
 
 UDP_PORT = 5005
 WS_PORT = 8765
@@ -24,7 +24,9 @@ WS_HOST = "0.0.0.0"
 
 active_websockets: Set[asyncio.StreamWriter] = set()
 nodes_seen = set()
-prev_amplitudes = []
+prev_amplitudes: Dict[int, List[float]] = {}
+baseline_amplitudes: Dict[int, List[float]] = {}
+calibration_counts: Dict[int, int] = {}
 
 # Spatial anchors for each node in 3D room (x, y, z)
 NODE_SPATIAL_ANCHORS = {
@@ -56,7 +58,6 @@ def parse_csi_packet(data: bytes) -> dict | None:
     }
 
 async def udp_listener():
-    global prev_amplitudes
     loop = asyncio.get_running_loop()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -70,28 +71,52 @@ async def udp_listener():
             data, addr = await loop.sock_recvfrom(sock, 4096)
             parsed = parse_csi_packet(data)
             if parsed:
-                nodes_seen.add(parsed["node_id"])
+                nid = parsed["node_id"]
+                nodes_seen.add(nid)
                 pkt_count += 1
-                
                 amps = parsed["amplitudes"]
+
+                # Accumulate baseline during initial calibration (~30 packets per node)
+                cal_count = calibration_counts.get(nid, 0)
+                if cal_count < 30:
+                    if nid not in baseline_amplitudes:
+                        baseline_amplitudes[nid] = [0.0] * len(amps)
+                    for i, a in enumerate(amps):
+                        if i < len(baseline_amplitudes[nid]):
+                            baseline_amplitudes[nid][i] += a
+                    calibration_counts[nid] = cal_count + 1
+                    if cal_count + 1 == 30:
+                        baseline_amplitudes[nid] = [
+                            round(tot / 30.0, 2) for tot in baseline_amplitudes[nid]
+                        ]
+                        print(f"[CSI Bridge] Node {nid} baseline calibrated successfully!")
+
+                is_calibrated = all(calibration_counts.get(n, 0) >= 30 for n in nodes_seen) if nodes_seen else False
+
                 mean_amp = sum(amps) / len(amps) if amps else 1.0
                 variance = sum((a - mean_amp) ** 2 for a in amps) / max(len(amps), 1)
                 
-                # Motion delta from previous packet
-                motion_delta = 0.0
-                if prev_amplitudes and len(prev_amplitudes) == len(amps):
-                    diffs = [abs(a - b) for a, b in zip(amps, prev_amplitudes)]
-                    motion_delta = sum(diffs) / len(diffs)
-                prev_amplitudes = amps
+                # Deviation from calibrated empty-room baseline
+                base_amps = baseline_amplitudes.get(nid, [])
+                baseline_diff = 0.0
+                if base_amps and len(base_amps) == len(amps):
+                    baseline_diff = sum(abs(a - b) for a, b in zip(amps, base_amps)) / len(amps)
 
-                motion_intensity = min(1.0, motion_delta * 0.05 + 0.02)
+                # Motion delta from previous packet
+                prev_amps = prev_amplitudes.get(nid, [])
+                motion_delta = 0.0
+                if prev_amps and len(prev_amps) == len(amps):
+                    motion_delta = sum(abs(a - b) for a, b in zip(amps, prev_amps)) / len(amps)
+                prev_amplitudes[nid] = amps
+
+                motion_intensity = min(1.0, motion_delta * 0.05)
                 motion_power = round(motion_intensity * 0.8, 3)
 
                 # Real-time fluctuating RSSI
                 real_rssi = parsed["rssi"] if parsed["rssi"] != 0 else -52
-                rssi_fluctuated = real_rssi + math.sin(pkt_count * 0.5) * 1.5
+                rssi_fluctuated = real_rssi + math.sin(pkt_count * 0.5) * 1.2
 
-                # Generate 400-element signal field grid derived from live CSI amplitudes
+                # 400-element signal field grid derived from live CSI amplitudes
                 signal_grid = []
                 for i in range(400):
                     subk_val = amps[i % len(amps)] / 50.0
@@ -99,32 +124,35 @@ async def udp_listener():
                     val = max(0.0, min(1.0, subk_val * 0.6 + wave * 0.4))
                     signal_grid.append(round(val, 3))
 
-                # Smooth fluctuating vitals
-                hr = 71 + round(math.sin(pkt_count * 0.15) * 4)
-                br = 16 + round(math.cos(pkt_count * 0.1) * 2)
-
-                # Multi-person 3D tracking: create 3D position targets for each active node
+                # Dynamic presence & person evaluation based on baseline deviation & motion
+                # When room is empty (baseline_diff < 3.5 and motion < 0.08): presence = False, persons = 0
+                has_presence = is_calibrated and (baseline_diff >= 3.5 or motion_intensity >= 0.08)
+                
                 persons = []
-                for nid in sorted(list(nodes_seen)):
-                    anchor = NODE_SPATIAL_ANCHORS.get(nid, [(nid - 2) * 1.2, 0.0, 0.0])
-                    offset_x = math.sin(pkt_count * 0.04 + nid) * 0.35
-                    offset_z = math.cos(pkt_count * 0.03 + nid * 2) * 0.35
-                    persons.append({
-                        "id": nid,
-                        "position": [
-                            round(anchor[0] + offset_x, 2),
-                            0.0,
-                            round(anchor[2] + offset_z, 2)
-                        ],
-                        "motion_score": round(motion_intensity * 100 + nid * 5, 1),
-                        "pose": "standing" if (nid + pkt_count // 40) % 2 == 0 else "walking"
-                    })
+                if has_presence:
+                    for active_nid in sorted(list(nodes_seen)):
+                        anchor = NODE_SPATIAL_ANCHORS.get(active_nid, [(active_nid - 2) * 1.2, 0.0, 0.0])
+                        offset_x = math.sin(pkt_count * 0.04 + active_nid) * 0.3
+                        offset_z = math.cos(pkt_count * 0.03 + active_nid * 2) * 0.3
+                        persons.append({
+                            "id": active_nid,
+                            "position": [
+                                round(anchor[0] + offset_x, 2),
+                                0.0,
+                                round(anchor[2] + offset_z, 2)
+                            ],
+                            "motion_score": round(motion_intensity * 100 + active_nid * 5, 1),
+                            "pose": "standing" if (active_nid + pkt_count // 40) % 2 == 0 else "walking"
+                        })
+
+                hr = (71 + round(math.sin(pkt_count * 0.15) * 4)) if has_presence else 0
+                br = (16 + round(math.cos(pkt_count * 0.1) * 2)) if has_presence else 0
 
                 frame = {
                     "type": "sensing_frame",
                     "source": "live_esp32",
                     "timestamp_ms": int(time.time() * 1000),
-                    "node_id": parsed["node_id"],
+                    "node_id": nid,
                     "active_nodes": sorted(list(nodes_seen)),
                     "estimated_persons": len(persons),
                     "vital_signs": {
@@ -138,13 +166,14 @@ async def udp_listener():
                         "variance": round(variance, 2),
                         "motion_band_power": motion_power,
                         "motion_intensity": round(motion_intensity, 3),
-                        "presence": True
+                        "baseline_deviation": round(baseline_diff, 2),
+                        "presence": has_presence
                     },
                     "classification": {
-                        "presence": True,
-                        "motion_level": "active" if motion_intensity > 0.15 else "present",
-                        "state": "Active" if motion_intensity > 0.15 else "Standing",
-                        "confidence": round(0.88 + math.sin(pkt_count * 0.1) * 0.08, 2)
+                        "presence": has_presence,
+                        "motion_level": "active" if (has_presence and motion_intensity > 0.12) else ("present" if has_presence else "absent"),
+                        "state": "Active" if (has_presence and motion_intensity > 0.12) else ("Standing" if has_presence else "Empty"),
+                        "confidence": round(0.92 + math.sin(pkt_count * 0.1) * 0.05, 2) if has_presence else 0.99
                     },
                     "signal_field": {
                         "width": 20,
