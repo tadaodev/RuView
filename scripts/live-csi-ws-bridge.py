@@ -4,7 +4,11 @@ live-csi-ws-bridge.py
 
 Bridges live ESP32-S3 UDP CSI packets (port 5005) directly to WebSocket clients (port 8765)
 and HTTP /health endpoint for RuView Observatory 3D & Vite Dashboard.
-Uses official `websockets` library with Chrome/Edge process_request compatibility and broadcast.
+Features:
+- Automatic & On-Demand Empty-Room Baseline Calibration (ADR-135)
+- Subcarrier Amplitude Background Subtraction (|amps - baseline|)
+- AGC gain jump cancellation
+- DBSCAN Spatial Distance Clustering (eps = 2.0m)
 """
 
 import asyncio
@@ -17,6 +21,7 @@ import sys
 import time
 from typing import Dict, Set, List
 import websockets
+from http import HTTPStatus
 
 UDP_PORT = 5005
 WS_PORT = 8765
@@ -36,12 +41,23 @@ node_rssi: Dict[int, float] = {}
 node_amps: Dict[int, List[float]] = {}
 debounce_counters: Dict[int, int] = {}
 
+# Baseline calibration state (ADR-135 Empty-room Baseline Subtraction)
+node_baselines: Dict[int, List[float]] = {}
+calibration_buffers: Dict[int, List[List[float]]] = {}
+calibration_frames_left: int = 0
+
 # Spatial anchors for each node in 3D room (x, y, z)
 NODE_SPATIAL_ANCHORS = {
     1: [-1.4, 0.0, -0.6],  # Node 1: Left zone
     2: [1.4, 0.0, -0.4],   # Node 2: Right zone
     3: [0.0, 0.0, 1.4],    # Node 3: Center/front zone
 }
+
+def start_calibration():
+    global calibration_frames_left, calibration_buffers
+    calibration_frames_left = 30  # Collect ~3 seconds of baseline frames
+    calibration_buffers = {}
+    print("[CSI Bridge] 🧹 Empty-room Baseline Calibration started (30 frames)...")
 
 def parse_csi_packet(data: bytes) -> dict | None:
     if len(data) < 8:
@@ -66,12 +82,16 @@ def parse_csi_packet(data: bytes) -> dict | None:
     }
 
 async def udp_listener():
+    global calibration_frames_left
     loop = asyncio.get_running_loop()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(("0.0.0.0", UDP_PORT))
     sock.setblocking(False)
     print(f"[CSI Bridge] Listening for ESP32 UDP packets on :{UDP_PORT}...")
+
+    # Start calibration on boot
+    start_calibration()
 
     while True:
         try:
@@ -84,11 +104,35 @@ async def udp_listener():
                 node_amps[nid] = amps
                 node_rssi[nid] = parsed["rssi"] if parsed["rssi"] != 0 else -52.0
 
-                # 1. Normalize subcarriers
+                # 1. Normalize subcarriers to cancel AGC gain steps
                 mean_a = sum(amps) / len(amps) if amps else 1.0
                 norm_amps = [a / max(mean_a, 1e-3) for a in amps]
 
-                # 2. Maintain history per node
+                # 2. Calibration baseline collection
+                if calibration_frames_left > 0:
+                    if nid not in calibration_buffers:
+                        calibration_buffers[nid] = []
+                    calibration_buffers[nid].append(norm_amps)
+                    calibration_frames_left -= 1
+                    if calibration_frames_left <= 0:
+                        # Finalize baseline per subcarrier
+                        for n, frames in calibration_buffers.items():
+                            if frames:
+                                subk_c = len(frames[0])
+                                avg_base = []
+                                for sk in range(subk_c):
+                                    avg_base.append(sum(f[sk] for f in frames) / len(frames))
+                                node_baselines[n] = avg_base
+                        print(f"[CSI Bridge] ✅ Baseline Calibration complete for nodes: {list(node_baselines.keys())}")
+
+                # 3. Background Subtraction (|amps - baseline|)
+                base = node_baselines.get(nid, None)
+                if base and len(base) == len(norm_amps):
+                    proc_amps = [abs(norm_amps[k] - base[k]) for k in range(len(norm_amps))]
+                else:
+                    proc_amps = norm_amps
+
+                # 4. Maintain history per node
                 if nid not in node_history:
                     node_history[nid] = collections.deque(maxlen=WINDOW_SIZE)
                     node_presence[nid] = False
@@ -97,12 +141,12 @@ async def udp_listener():
                     debounce_counters[nid] = 0
 
                 history = node_history[nid]
-                history.append(norm_amps)
+                history.append(proc_amps)
 
-                # 3. Sliding window temporal variance
+                # 5. Sliding window temporal variance
                 temporal_var = 0.0
                 if len(history) >= 5:
-                    subk_count = len(norm_amps)
+                    subk_count = len(proc_amps)
                     vars_per_subk = []
                     for k in range(subk_count):
                         vals = [frame[k] for frame in history if k < len(frame)]
@@ -117,7 +161,7 @@ async def udp_listener():
                 node_motion[nid] = motion_intensity
                 node_variance[nid] = temporal_var
 
-                # 4. Hysteresis debouncing (threshold 0.008 for high sensitivity)
+                # 6. Hysteresis debouncing
                 raw_presence = temporal_var >= 0.008
                 cur_presence = node_presence[nid]
                 if raw_presence != cur_presence:
@@ -241,21 +285,27 @@ async def echo(websocket):
     print(f"[CSI Bridge] Client connected over WebSocket! Active clients: {len(active_websockets)}")
     try:
         async for message in websocket:
-            pass
+            try:
+                msg = json.loads(message)
+                if isinstance(msg, dict) and msg.get("type") == "calibrate":
+                    start_calibration()
+            except Exception:
+                pass
     except Exception:
         pass
     finally:
         active_websockets.discard(websocket)
         print(f"[CSI Bridge] Client disconnected. Active clients: {len(active_websockets)}")
 
-from http import HTTPStatus
-
 def process_request(connection, request):
     if request.path == "/health":
-        body = json.dumps({"status": "ok", "nodes": sorted(list(nodes_seen))}).encode('utf-8')
+        body = json.dumps({
+            "status": "ok",
+            "nodes": sorted(list(nodes_seen)),
+            "baseline_calibrated": len(node_baselines) > 0
+        }).encode('utf-8')
         return connection.respond(
             HTTPStatus.OK,
-            [("Content-Type", "application/json"), ("Access-Control-Allow-Origin", "*")],
             body
         )
     return None

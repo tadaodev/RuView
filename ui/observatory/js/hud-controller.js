@@ -279,6 +279,14 @@ export class HudController {
       obs._controls.target.set(0, 1.2, 0);
       obs._controls.update();
     });
+    document.getElementById('btn-calibrate-baseline')?.addEventListener('click', () => {
+      if (obs._ws && obs._ws.readyState === WebSocket.OPEN) {
+        obs._ws.send(JSON.stringify({ type: 'calibrate' }));
+        alert('🧹 空部屋ベースライン校正を開始しました！部屋を出て約3秒間静止してください。背景ノイズが自動消去されます。');
+      } else {
+        alert('⚠️ ライブWebSocket接続中のみ校正が可能です。「ライブ WebSocket」を選択してください。');
+      }
+    });
     document.getElementById('btn-export-settings').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
