@@ -263,7 +263,7 @@ export class HudController {
     document.getElementById('ws-url-row').style.display = s.dataSource === 'ws' ? 'flex' : 'none';
 
     const wsInput = document.getElementById('opt-ws-url');
-    wsInput.value = s.wsUrl;
+    wsInput.value = s.wsUrl || `ws://${window.location.hostname || '127.0.0.1'}:8765`;
     wsInput.addEventListener('change', (e) => {
       s.wsUrl = e.target.value;
       if (s.dataSource === 'ws') obs._connectWS(e.target.value);
