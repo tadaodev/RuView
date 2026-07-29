@@ -35,7 +35,8 @@ mod vital_signs;
 
 // Training pipeline modules (exposed via lib.rs)
 use wifi_densepose_sensing_server::{
-    dataset, embedding, error_response, graph_transformer, rufield_surface, trainer,
+    dataset, embedding, error_response, graph_transformer, rufield_surface, semconv, telemetry,
+    trainer,
 };
 
 use ruvector_mincut::{DynamicMinCut, MinCutBuilder};
@@ -393,6 +394,62 @@ struct ClassificationInfo {
     confidence: f64,
 }
 
+/// Derives the classification triple from raw ESP32 vitals fields.
+///
+/// `presence` is derived from `motion_level`, never taken from the raw
+/// `presence` flag directly, so `motion_level: "present_moving"` can never
+/// pair with `presence: false` (issue #1442) — matches the convention
+/// already used elsewhere (the per-node path and `csi.rs`'s label-derived
+/// `classification.presence = label != "absent"`).
+fn classify_vitals(motion: bool, presence: bool, presence_score: f32) -> ClassificationInfo {
+    let motion_level = if motion {
+        "present_moving"
+    } else if presence {
+        "present_still"
+    } else {
+        "absent"
+    };
+    ClassificationInfo {
+        motion_level: motion_level.to_string(),
+        presence: motion_level != "absent",
+        confidence: presence_score as f64,
+    }
+}
+
+#[cfg(test)]
+mod classify_vitals_tests {
+    use super::classify_vitals;
+
+    #[test]
+    fn motion_implies_presence_issue_1442() {
+        // The exact contradictory frame from issue #1442:
+        // motion=true, presence=false must not yield presence: false.
+        let c = classify_vitals(true, false, 0.69);
+        assert_eq!(c.motion_level, "present_moving");
+        assert!(c.presence, "motion implies presence regardless of the raw presence flag");
+    }
+
+    #[test]
+    fn presence_without_motion_is_present_still() {
+        let c = classify_vitals(false, true, 0.5);
+        assert_eq!(c.motion_level, "present_still");
+        assert!(c.presence);
+    }
+
+    #[test]
+    fn neither_motion_nor_presence_is_absent() {
+        let c = classify_vitals(false, false, 0.0);
+        assert_eq!(c.motion_level, "absent");
+        assert!(!c.presence);
+    }
+
+    #[test]
+    fn confidence_passes_through_presence_score() {
+        let c = classify_vitals(true, true, 0.33);
+        assert!((c.confidence - 0.33_f64).abs() < 1e-6);
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SignalField {
     grid_size: [usize; 3],
@@ -703,7 +760,11 @@ impl NodeState {
         })
     }
 
-    pub(crate) fn observe_csi_frame_arrival(&mut self, now: std::time::Instant) {
+    /// Record a CSI data-frame arrival and return whether it was the node's
+    /// first sensing frame. Sync packets deliberately do not change this
+    /// result, so a sync-before-CSI sequence still produces `node.online`.
+    pub(crate) fn observe_csi_frame_arrival(&mut self, now: std::time::Instant) -> bool {
+        let first_sensing_frame = self.last_frame_time.is_none();
         if let Some(prev) = self.last_frame_time {
             let dt = now.duration_since(prev).as_secs_f64();
             // Burst arrivals (sub-floor dt, issue #1180): do NOT re-anchor on
@@ -713,7 +774,7 @@ impl NodeState {
             // frames arrive in 36 µs bursts every 25 ms still reads ~40 fps,
             // not 27 kHz.
             if dt < MIN_PLAUSIBLE_CSI_DT_SEC {
-                return;
+                return false;
             }
             if let Some(new_ema) = update_csi_fps_ema(self.csi_fps_ema, dt) {
                 self.csi_fps_ema = new_ema;
@@ -721,6 +782,7 @@ impl NodeState {
             }
         }
         self.last_frame_time = Some(now);
+        first_sensing_frame
     }
 
     pub(crate) fn new() -> Self {
@@ -2785,6 +2847,7 @@ async fn windows_wifi_task(state: SharedState, tick_ms: u64) {
         if let Ok(json) = serde_json::to_string(&update) {
             let _ = s.tx.send(json);
         }
+        observe_sensing_update(s.latest_update.as_ref(), &update);
         s.latest_update = Some(update);
 
         debug!(
@@ -2940,6 +3003,7 @@ async fn windows_wifi_fallback_tick(state: &SharedState, seq: u32) {
     if let Ok(json) = serde_json::to_string(&update) {
         let _ = s.tx.send(json);
     }
+    observe_sensing_update(s.latest_update.as_ref(), &update);
     s.latest_update = Some(update);
 }
 
@@ -4712,7 +4776,11 @@ async fn load_model(
     let mut s = state.write().await;
     s.active_model_id = Some(model_id.clone());
     s.model_loaded = true;
-    info!("Model loaded: {model_id}");
+    if telemetry::curated_events_enabled() {
+        info!(name: semconv::EVENT_RUVIEW_MODEL_LOADED, { "ruview.model.id" = %model_id }, "Model loaded: {model_id}");
+    } else {
+        info!("Model loaded: {model_id}");
+    }
     Json(serde_json::json!({ "success": true, "model_id": model_id }))
 }
 
@@ -5768,7 +5836,18 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
                     // ── Per-node state for edge vitals (issue #249) ──────
                     let node_id = vitals.node_id;
                     let ns = s.node_states.entry(node_id).or_insert_with(NodeState::new);
+                    let first_sensing_frame = ns.last_frame_time.is_none();
                     ns.last_frame_time = Some(std::time::Instant::now());
+                    if first_sensing_frame && telemetry::curated_events_enabled() {
+                        info!(name: semconv::EVENT_RUVIEW_NODE_ONLINE, { "ruview.node.id" = node_id }, "node {node_id} online (edge vitals)");
+                    }
+                    // Edge-triggered on the fall flag's rising edge (against
+                    // the node's previous edge-vitals frame), so a persisting
+                    // flag does not re-emit every frame.
+                    let prev_fall = ns.edge_vitals.as_ref().is_some_and(|v| v.fall_detected);
+                    if vitals.fall_detected && !prev_fall && telemetry::curated_events_enabled() {
+                        warn!(name: semconv::EVENT_RUVIEW_FALL_DETECTED, { "ruview.node.id" = node_id }, "fall detected by node {node_id}");
+                    }
                     ns.edge_vitals = Some(vitals.clone());
                     ns.rssi_history.push_back(vitals.rssi as f64);
                     if ns.rssi_history.len() > 60 {
@@ -5786,13 +5865,6 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
                     s.tick += 1;
                     let tick = s.tick;
 
-                    let motion_level = if vitals.motion {
-                        "present_moving"
-                    } else if vitals.presence {
-                        "present_still"
-                    } else {
-                        "absent"
-                    };
                     let motion_score = if vitals.motion {
                         0.8
                     } else if vitals.presence {
@@ -5899,11 +5971,8 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
                     // Cross-node fusion: combine features from all active nodes.
                     let fused_features = fuse_multi_node_features(&features, &s.node_states);
 
-                    let mut classification = ClassificationInfo {
-                        motion_level: motion_level.to_string(),
-                        presence: vitals.presence,
-                        confidence: vitals.presence_score as f64,
-                    };
+                    let mut classification =
+                        classify_vitals(vitals.motion, vitals.presence, vitals.presence_score);
 
                     // Boost classification confidence with multi-node coverage.
                     let n_active = s
@@ -5991,6 +6060,7 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
                     if let Ok(json) = serde_json::to_string(&update) {
                         let _ = s.tx.send(json);
                     }
+                    observe_sensing_update(s.latest_update.as_ref(), &update);
                     s.latest_update = Some(update);
                     s.edge_vitals = Some(vitals);
                     continue;
@@ -6170,7 +6240,11 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
                     // ADR-110 iter 19 — feed the per-node fps EMA from real
                     // CSI arrivals. The helper sets `last_frame_time` as a
                     // side effect, so the previous bare assignment is gone.
-                    ns.observe_csi_frame_arrival(std::time::Instant::now());
+                    let first_sensing_frame =
+                        ns.observe_csi_frame_arrival(std::time::Instant::now());
+                    if first_sensing_frame && telemetry::curated_events_enabled() {
+                        info!(name: semconv::EVENT_RUVIEW_NODE_ONLINE, { "ruview.node.id" = node_id }, "node {node_id} online (CSI)");
+                    }
 
                     // ADR-084 Pass 3: cluster-Pi novelty sensor.
                     // Score this frame's feature vector against the per-node
@@ -6435,21 +6509,31 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
                     // held edge-local. `presence == false` ⇒ no phantom event.
                     emit_rufield_event(&s, &update, node_id);
 
+                    observe_sensing_update(s.latest_update.as_ref(), &update);
                     s.latest_update = Some(update);
 
                     // Evict stale nodes every 100 ticks to prevent memory leak.
                     if tick % 100 == 0 {
                         let stale = Duration::from_secs(60);
-                        let before = s.node_states.len();
-                        s.node_states.retain(|_id, ns| {
-                            ns.last_frame_time
-                                .is_some_and(|t| now.duration_since(t) < stale)
-                        });
-                        let evicted = before - s.node_states.len();
-                        if evicted > 0 {
+                        let stale_ids: Vec<u8> = s
+                            .node_states
+                            .iter()
+                            .filter(|(_, ns)| {
+                                !ns.last_frame_time
+                                    .is_some_and(|t| now.duration_since(t) < stale)
+                            })
+                            .map(|(&id, _)| id)
+                            .collect();
+                        for id in &stale_ids {
+                            s.node_states.remove(id);
+                            if telemetry::curated_events_enabled() {
+                                info!(name: semconv::EVENT_RUVIEW_NODE_OFFLINE, { "ruview.node.id" = *id }, "node {id} offline (no frames for 60s)");
+                            }
+                        }
+                        if !stale_ids.is_empty() {
                             info!(
                                 "Evicted {} stale node(s), {} active",
-                                evicted,
+                                stale_ids.len(),
                                 s.node_states.len()
                             );
                         }
@@ -6459,6 +6543,67 @@ async fn udp_receiver_task(state: SharedState, udp_port: u16) {
             Err(e) => {
                 warn!("UDP recv error: {e}");
                 tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        }
+    }
+}
+
+/// Cadence, in sensing ticks, of the periodic `ruview.csi.stats` and
+/// `ruview.vitals.estimate` telemetry snapshots.
+const TELEMETRY_SNAPSHOT_TICKS: u64 = 100;
+
+/// Emit the curated telemetry events for a finished sensing cycle
+/// (names and attribute keys from `semconv/registry/` at the repo root):
+/// `ruview.presence.changed` on presence transitions against the
+/// previously published update, plus the cadenced `ruview.csi.stats` and
+/// `ruview.vitals.estimate` snapshots. Called from every path that
+/// publishes a `SensingUpdate`, right before it lands in `latest_update`
+/// — never per frame at full rate.
+fn observe_sensing_update(prev: Option<&SensingUpdate>, update: &SensingUpdate) {
+    if !telemetry::curated_events_enabled() {
+        return;
+    }
+
+    let presence = update.classification.presence;
+    if prev.map(|u| u.classification.presence) != Some(presence) {
+        let state = if presence { "present" } else { "absent" };
+        info!(
+            name: semconv::EVENT_RUVIEW_PRESENCE_CHANGED,
+            {
+                "ruview.presence.state" = state,
+                "ruview.motion.level" = %update.classification.motion_level,
+                "ruview.inference.confidence" = update.classification.confidence,
+                "ruview.persons.count" = update.estimated_persons.unwrap_or(0) as u64,
+                "ruview.csi.source" = %update.source,
+            },
+            "presence changed: {state}"
+        );
+    }
+    if update.tick % TELEMETRY_SNAPSHOT_TICKS == 0 {
+        info!(
+            name: semconv::EVENT_RUVIEW_CSI_STATS,
+            {
+                "ruview.csi.frames_total" = update.tick,
+                "ruview.csi.nodes_active" = update.nodes.len() as u64,
+                "ruview.csi.source" = %update.source,
+            },
+            "csi stats: {} frames processed, {} active node(s)",
+            update.tick,
+            update.nodes.len()
+        );
+        if let Some(v) = &update.vital_signs {
+            if v.breathing_rate_bpm.is_some() || v.heart_rate_bpm.is_some() {
+                info!(
+                    name: semconv::EVENT_RUVIEW_VITALS_ESTIMATE,
+                    {
+                        "ruview.vitals.breathing_rate_bpm" = v.breathing_rate_bpm.unwrap_or(0.0),
+                        "ruview.vitals.heart_rate_bpm" = v.heart_rate_bpm.unwrap_or(0.0),
+                        "ruview.vitals.breathing_confidence" = v.breathing_confidence,
+                        "ruview.vitals.heartbeat_confidence" = v.heartbeat_confidence,
+                        "ruview.csi.source" = %update.source,
+                    },
+                    "vitals estimate"
+                );
             }
         }
     }
@@ -6613,6 +6758,7 @@ async fn simulated_data_task(state: SharedState, tick_ms: u64) {
         if let Ok(json) = serde_json::to_string(&update) {
             let _ = s.tx.send(json);
         }
+        observe_sensing_update(s.latest_update.as_ref(), &update);
         s.latest_update = Some(update);
     }
 }
@@ -7014,13 +7160,11 @@ fn coalesce_ui_path(initial: std::path::PathBuf) -> std::path::PathBuf {
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,tower_http=debug".into()),
-        )
-        .init();
+    // Initialize tracing; with the `otel` feature and
+    // OTEL_EXPORTER_OTLP_ENDPOINT set, logs also export over OTLP
+    // (service.name = "ruview") — see telemetry.rs. The guard flushes
+    // pending log records on exit.
+    let _telemetry = telemetry::init();
 
     let mut args = Args::parse();
     args.ui_path = coalesce_ui_path(args.ui_path);
@@ -8529,6 +8673,22 @@ mod sync_snapshot_helper_tests {
         assert_eq!(ns.latest_sync_at, Some(now));
         // sync_snapshot now produces a value (REST 200 OK path).
         assert!(ns.sync_snapshot().is_some());
+    }
+
+    #[test]
+    fn sync_before_first_csi_still_marks_csi_as_first_sensing_frame() {
+        let mut ns = NodeState::new();
+        let now = std::time::Instant::now();
+        ns.apply_sync_packet(populated_sync(9), now);
+
+        assert!(
+            ns.observe_csi_frame_arrival(now + std::time::Duration::from_millis(20)),
+            "a sync packet must not consume the first sensing-frame transition"
+        );
+        assert!(
+            !ns.observe_csi_frame_arrival(now + std::time::Duration::from_millis(40)),
+            "subsequent CSI frames must not re-emit node.online"
+        );
     }
 
     #[test]
