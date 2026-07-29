@@ -337,7 +337,12 @@ export class HudController {
 
   applyPreset(preset) {
     const obs = this._obs;
+    const curDataSource = obs.settings.dataSource;
+    const curWsUrl = obs.settings.wsUrl;
     Object.assign(obs.settings, preset);
+    // Preserve data connection settings across visual style preset changes
+    obs.settings.dataSource = curDataSource;
+    obs.settings.wsUrl = curWsUrl;
     this.saveSettings();
     const rangeMap = {
       'opt-bloom': 'bloom', 'opt-bloom-radius': 'bloomRadius', 'opt-bloom-thresh': 'bloomThresh',
