@@ -33,51 +33,71 @@ __version__ = "2.0.0"
 # Re-export the compiled module's surface. The leading underscore on
 # `_native` is intentional — it marks the binding module as internal.
 # Users always import from `wifi_densepose` directly.
-from wifi_densepose import _native
+try:
+    from wifi_densepose import _native
 
-# ─── P2 — Core type re-exports ───────────────────────────────────────
-# Bound types land in `wifi_densepose._native` and are re-exported here
-# under their stable public names. Users always `from wifi_densepose
-# import Keypoint, KeypointType` — never reach into `_native`.
-Keypoint = _native.Keypoint
-KeypointType = _native.KeypointType
-BoundingBox = _native.BoundingBox
-PersonPose = _native.PersonPose
-PoseEstimate = _native.PoseEstimate
+    # ─── P2 — Core type re-exports ───────────────────────────────────────
+    # Bound types land in `wifi_densepose._native` and are re-exported here
+    # under their stable public names. Users always `from wifi_densepose
+    # import Keypoint, KeypointType` — never reach into `_native`.
+    Keypoint = _native.Keypoint
+    KeypointType = _native.KeypointType
+    BoundingBox = _native.BoundingBox
+    PersonPose = _native.PersonPose
+    PoseEstimate = _native.PoseEstimate
 
-# ─── P3 — Vital sign extraction ──────────────────────────────────────
-VitalStatus = _native.VitalStatus
-VitalEstimate = _native.VitalEstimate
-VitalReading = _native.VitalReading
-BreathingExtractor = _native.BreathingExtractor
-HeartRateExtractor = _native.HeartRateExtractor
+    # ─── P3 — Vital sign extraction ──────────────────────────────────────
+    VitalStatus = _native.VitalStatus
+    VitalEstimate = _native.VitalEstimate
+    VitalReading = _native.VitalReading
+    BreathingExtractor = _native.BreathingExtractor
+    HeartRateExtractor = _native.HeartRateExtractor
 
-# ─── P3.5 — BFLD (Beamforming Feedback Loop Data) ─────────────────────
-BfldKind = _native.BfldKind
-BfldFrame = _native.BfldFrame
-BfldReport = _native.BfldReport
+    # ─── P3.5 — BFLD (Beamforming Feedback Loop Data) ─────────────────────
+    BfldKind = _native.BfldKind
+    BfldFrame = _native.BfldFrame
+    BfldReport = _native.BfldReport
 
+    __rust_version__: str = _native.__rust_version__
+    """Version of the bound Rust core. Useful for bug reports."""
 
-__rust_version__: str = _native.__rust_version__
-"""Version of the bound Rust core. Useful for bug reports."""
+    __rust_build_tag__: str = _native.__rust_build_tag__
+    """Build tag of the Rust core (P5 will swap this for the git SHA)."""
 
-__rust_build_tag__: str = _native.__rust_build_tag__
-"""Build tag of the Rust core (P5 will swap this for the git SHA)."""
+    __build_features__: list[str] = list(_native.__build_features__)
+    """Feature flags the wheel was compiled with."""
 
-__build_features__: list[str] = list(_native.__build_features__)
-"""Feature flags the wheel was compiled with."""
+    def hello() -> str:
+        """Smoke test — confirms the compiled module loads and is callable.
 
+        Returns:
+            Always ``"ok"`` if the wheel built and loaded correctly.
 
-def hello() -> str:
-    """Smoke test — confirms the compiled module loads and is callable.
+        Used by ``python/tests/test_smoke.py`` to assert the PyO3 round-trip
+        works end-to-end on every cibuildwheel target.
+        """
+        return _native.hello()
+except ImportError:
+    _native = None  # type: ignore[assignment]
+    Keypoint = None  # type: ignore[assignment,misc]
+    KeypointType = None  # type: ignore[assignment,misc]
+    BoundingBox = None  # type: ignore[assignment,misc]
+    PersonPose = None  # type: ignore[assignment,misc]
+    PoseEstimate = None  # type: ignore[assignment,misc]
+    VitalStatus = None  # type: ignore[assignment,misc]
+    VitalEstimate = None  # type: ignore[assignment,misc]
+    VitalReading = None  # type: ignore[assignment,misc]
+    BreathingExtractor = None  # type: ignore[assignment,misc]
+    HeartRateExtractor = None  # type: ignore[assignment,misc]
+    BfldKind = None  # type: ignore[assignment,misc]
+    BfldFrame = None  # type: ignore[assignment,misc]
+    BfldReport = None  # type: ignore[assignment,misc]
+    __rust_version__ = "uncompiled"
+    __rust_build_tag__ = "uncompiled"
+    __build_features__ = []
 
-    Returns:
-        Always ``"ok"`` if the wheel built and loaded correctly.
-
-    Used by ``python/tests/test_smoke.py`` to assert the PyO3 round-trip
-    works end-to-end on every cibuildwheel target.
-    """
-    return _native.hello()
+    def hello() -> str:
+        return "uncompiled"
 
 
 __all__ = [
