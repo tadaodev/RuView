@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -7,6 +8,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 const base = (globalThis as { process?: { env?: { NVSIM_BASE?: string } } }).process?.env?.NVSIM_BASE ?? '/';
 
 export default defineConfig({
+  test: {
+    include: ['tests/**/*.test.ts'],
+  },
   base,
   publicDir: 'public',
   worker: {

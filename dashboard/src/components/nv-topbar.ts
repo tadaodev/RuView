@@ -4,11 +4,11 @@ import { customElement } from 'lit/decorators.js';
 import { effect } from '@preact/signals-core';
 import {
   fps, transportLabel, seed, theme, sceneName,
-  running, getClient, pushLog,
+  running, getClient, pushLog, t as simTime,
 } from '../store/appStore';
 import { openModal } from './nv-modal';
 import { toast } from './nv-toast';
-import { t, i18n, setLocale } from '../i18n';
+import { t, i18n, setLocale, getLocale } from '../i18n';
 
 @customElement('nv-topbar')
 export class NvTopbar extends LitElement {
@@ -87,7 +87,7 @@ export class NvTopbar extends LitElement {
     const isJa = getLocale() === 'ja';
     if (c) await c.reset();
     running.value = false;
-    t.value = 0;
+    simTime.value = 0;
     fps.value = 0;
     pushLog('warn', isJa ? 'パイプラインリセット · t=0' : 'pipeline reset · t=0');
     toast(isJa ? 'パイプラインをリセットしました' : 'Pipeline reset', '⟳');
